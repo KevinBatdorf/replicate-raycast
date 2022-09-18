@@ -1,8 +1,18 @@
 import { useLayoutEffect, useState } from "react";
-import { ActionPanel, Action, Grid, getPreferenceValues, Icon } from "@raycast/api";
+import {
+  ActionPanel,
+  Action,
+  Grid,
+  getPreferenceValues,
+  Icon,
+  showToast,
+  Toast,
+  List,
+  openCommandPreferences,
+} from "@raycast/api";
 import { Prediction, PredictionResponse } from "../types";
 import { PREDICTIONS_URL } from "../constants";
-import { buildPredictionsList, copyImage } from "../lib/helpers";
+import { buildPredictionsList, copyImage, showAuthError } from "../utils/helpers";
 import { Single } from "./Single";
 import fetch from "node-fetch";
 
@@ -13,17 +23,43 @@ type Props = {
 export const GridView = ({ isLoading, onSearchTextChange }: Props) => {
   const [predictions, setData] = useState<Prediction[]>();
   const [itemSize, setItemSize] = useState<Grid.ItemSize>(Grid.ItemSize.Medium);
+  const [error, setError] = useState("");
   const { token } = getPreferenceValues();
   const headers = { Authorization: `Token ${token}` };
 
   useLayoutEffect(() => {
     fetch(PREDICTIONS_URL, { headers })
-      .then((res) => res.json())
-      .then((res) => {
-        const data = res as PredictionResponse;
+      .then((response) => {
+        if (!response.ok) {
+          showAuthError("Communication Error", response.statusText);
+          throw new Error(`Communication Error: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then((response) => {
+        const data = response as PredictionResponse;
         setData(buildPredictionsList(data.results));
-      });
+      })
+      .catch((error) => setError(error.message));
   });
+
+  if (error) {
+    // console.log(error);
+    return (
+      <List>
+        <List.EmptyView
+          icon={{ source: "⚠️" }}
+          title="Error"
+          description={error}
+          actions={
+            <ActionPanel>
+              <Action icon={Icon.Gear} title="Update token" onAction={openCommandPreferences} />
+            </ActionPanel>
+          }
+        />
+      </List>
+    );
+  }
 
   return (
     <Grid

@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { DB_FILE_PATH } from "../constants";
-import { buildPaginatedUrl, filterIsUrl, showAuthError, succeeded } from "./helpers";
+import { buildPaginatedUrl, filterIsUrl, showAuthError, succeeded } from "../utils/helpers";
 import { PredictionResponse } from "../types";
 
 export const createTables = `
@@ -37,7 +37,8 @@ export const populateDbFromApi = async (db: Database, cursor: string | undefined
   const res = await fetch(apiEndpoint.toString(), { headers });
   const data = (await res.json()) as PredictionResponse;
   if (res.status === 401) {
-    return showAuthError();
+    const message = data?.detail || "Unauthorized";
+    return showAuthError(message);
   }
   let broke = false;
 

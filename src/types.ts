@@ -2,6 +2,7 @@ export type PredictionResponse = {
   next: string | null;
   previous: string | null;
   results: Prediction[];
+  detail?: string;
 };
 export type Prediction = {
   id: string;
