@@ -1,8 +1,9 @@
-import { List } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useSQL } from "@raycast/utils";
 import { useEffect } from "react";
 import { DB_FILE_PATH } from "../constants";
 import { useDatabase } from "../hooks/useDatabase";
+import { copyImage } from "../lib/helpers";
 import { dbEntry } from "../types";
 
 type Props = {
@@ -23,7 +24,19 @@ export const ListDetails = ({ isLoading, search, setSearch }: Props) => {
 ### ${prompt?.trim() ?? "No prompt provided"}
 
 ![${prompt?.trim() ?? ""}](${src})`;
-        return <List.Item key={id} title={prompt?.trim() ?? ""} detail={<List.Item.Detail markdown={markdown} />} />;
+        return (
+          <List.Item
+            key={id}
+            title={prompt?.trim() ?? ""}
+            detail={<List.Item.Detail markdown={markdown} />}
+            actions={
+              <ActionPanel>
+                <Action icon={Icon.Image} title="Copy Image" onAction={() => copyImage(src)} />
+                {prompt && <Action.CopyToClipboard icon={Icon.Text} title="Copy Prompt" content={prompt.trim()} />}
+              </ActionPanel>
+            }
+          />
+        );
       })}
     </List>
   );

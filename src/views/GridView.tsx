@@ -1,8 +1,8 @@
 import { useLayoutEffect, useState } from "react";
-import { ActionPanel, Action, Grid, getPreferenceValues } from "@raycast/api";
+import { ActionPanel, Action, Grid, getPreferenceValues, Icon } from "@raycast/api";
 import { Prediction, PredictionResponse } from "../types";
 import { PREDICTIONS_URL } from "../constants";
-import { buildPredictionsList } from "../lib/helpers";
+import { buildPredictionsList, copyImage } from "../lib/helpers";
 import { Single } from "./Single";
 import fetch from "node-fetch";
 
@@ -59,7 +59,11 @@ export const GridView = ({ isLoading, onSearchTextChange }: Props) => {
             title={input?.prompt?.trim() ?? ""}
             actions={
               <ActionPanel>
-                <Action.Push title="View" target={<Single prediction={prediction} />} />
+                <Action.Push icon={Icon.Sidebar} title="View" target={<Single prediction={prediction} />} />
+                <Action icon={Icon.Image} title="Copy Image" onAction={() => copyImage(output[0])} />
+                {input?.prompt && (
+                  <Action.CopyToClipboard icon={Icon.Text} title="Copy Prompt" content={input.prompt?.trim()} />
+                )}
               </ActionPanel>
             }
           />

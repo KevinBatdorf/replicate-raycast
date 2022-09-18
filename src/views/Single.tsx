@@ -17,6 +17,9 @@ export const Single = ({ prediction }: { prediction: Prediction }) => {
       actions={
         <ActionPanel>
           <Action icon={Icon.Image} title="Copy Image" onAction={() => copyImage(output[0])} />
+          {input?.prompt && (
+            <Action.CopyToClipboard icon={Icon.Text} title="Copy Prompt" content={input?.prompt.trim()} />
+          )}
         </ActionPanel>
       }
       metadata={
