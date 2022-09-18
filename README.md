@@ -1,4 +1,4 @@
-# Replicate
+# Replicate API Raycast Extension
 
 View your prediction history and search for predictions by prompt.
 
