@@ -44,7 +44,6 @@ export const GridView = ({ isLoading, onSearchTextChange }: Props) => {
   });
 
   if (error) {
-    // console.log(error);
     return (
       <List>
         <List.EmptyView
