@@ -1,8 +1,8 @@
 # Replicate
 
-Search and view information about any game on steam, as well as games you own.
+View your prediction history and search for predictions by prompt.
 
-Create an account andget an API token here (required): https://replicate.com
+Create an account and get an API token here (required): https://replicate.com
 
 Source repo: https://github.com/KevinBatdorf/replicate-raycast
 
