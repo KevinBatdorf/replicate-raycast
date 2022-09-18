@@ -1,3 +1,5 @@
 # Replicate Changelog
 
-## [Initial Version] - 2022-09-17
+## [Added Replicate] - 2022-09-17
+
+Initial version code

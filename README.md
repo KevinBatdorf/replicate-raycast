@@ -11,7 +11,3 @@ Source repo: https://github.com/KevinBatdorf/replicate-raycast
 - Search your prompts
 - View predictions as a grid
 - View details about a prediction
-
-
-<img src="assets/screenshot-1.png" />
-<img src="assets/screenshot-2.png" />

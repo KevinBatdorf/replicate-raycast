@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDatabase } from "./hooks/useDatabase";
 import { GridView } from "./views/GridView";
-import { ListDetails } from "./views/LIstDetails";
+import { ListDetails } from "./views/ListDetails";
 
 export default function Command() {
   const [search, setSearch] = useState("");

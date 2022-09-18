@@ -1,15 +1,9 @@
-import { environment, getPreferenceValues, openCommandPreferences, showToast, Toast } from "@raycast/api";
-import fetch from "node-fetch";
-import initSqlJs, { Database } from "sql.js";
+import { showToast, Toast } from "@raycast/api";
+import { Database } from "sql.js";
 import { existsSync, writeFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import { useEffect, useState } from "react";
-import { createTables, initiDb, populateDbFromApi } from "../lib/db";
-import { URL } from "node:url";
-import { PredictionResponse } from "../types";
-import { DB_FILE_PATH, PREDICTIONS_URL } from "../constants";
-import { buildPaginatedUrl, filterIsUrl, succeeded } from "../lib/helpers";
+import { initiDb, populateDbFromApi } from "../lib/db";
+import { DB_FILE_PATH } from "../constants";
 
 if (!existsSync(DB_FILE_PATH)) {
   writeFileSync(DB_FILE_PATH, "", "utf8");
@@ -22,11 +16,11 @@ export const useDatabase = () => {
   const [db, setDb] = useState<Database | null>();
   useEffect(() => {
     initiDb().then(async (client) => {
-      await showToast(Toast.Style.Animated, "Indexing...");
+      const { hide } = await showToast(Toast.Style.Animated, "Refreshing...");
       client.run("BEGIN TRANSACTION");
       await populateDbFromApi(client, undefined);
       client.run("COMMIT TRANSACTION");
-      await showToast(Toast.Style.Success, "Indexed!");
+      hide();
       setDb(client);
     });
   }, []);

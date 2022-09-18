@@ -1,12 +1,14 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "replicate",
-  "title": "Replicate",
-  "description": "View your Replicate.com predictions",
-  "icon": "🚀",
+  "title": "Replicate.com",
+  "description": "View and search your Replicate.com ai generate predictions",
+  "icon": "command-icon.png",
   "author": "KevinBatdorf",
   "categories": [
-    "Media"
+    "Media",
+    "Design Tools",
+    "Productivity"
   ],
   "license": "MIT",
   "commands": [
