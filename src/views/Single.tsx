@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
-import { copyImage, makeTitle } from "../lib/helpers";
+import { copyImage, makeTitle } from "../utils/helpers";
 import { Prediction } from "../types";
 
 export const Single = ({ prediction }: { prediction: Prediction }) => {

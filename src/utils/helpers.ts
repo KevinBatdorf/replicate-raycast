@@ -63,14 +63,12 @@ export const buildPaginatedUrl = (cursor: string | undefined) => {
   return { apiEndpoint, headers };
 };
 
-export const showAuthError = () => {
+export const showAuthError = (title?: string, message?: string) => {
   showToast({
-    // eslint-disable-next-line
-    // @ts-ignore-next-line
-    title: data?.detail ?? "Unauthorized",
+    title: message ?? "",
     style: Toast.Style.Failure,
     primaryAction: {
-      title: "Open preferences",
+      title: "Update token",
       onAction: openCommandPreferences,
     },
   });
