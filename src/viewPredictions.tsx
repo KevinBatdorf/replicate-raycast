@@ -1,30 +1,16 @@
-import { useState } from "react";
 import { usePredictions } from "./hooks/usePredictions";
-import { GridView } from "./views/GridView";
-import { ListDetails } from "./views/ListDetails";
+import { PredictionList } from "./views/PredictionList";
 
 export default function ViewPredictions() {
-  const [search, setSearch] = useState("");
-  const { data: predictions, isLoading, error, pagination } = usePredictions();
+  const { data: predictions, isLoading, error, pagination, revalidate } = usePredictions();
 
-  if (search) {
-    return (
-      <ListDetails
-        predictions={predictions ?? []}
-        isLoading={isLoading}
-        search={search}
-        setSearch={setSearch}
-        pagination={pagination}
-      />
-    );
-  }
   return (
-    <GridView
+    <PredictionList
       predictions={predictions}
       isLoading={isLoading}
       error={error}
       pagination={pagination}
-      onSearchTextChange={setSearch}
+      revalidate={revalidate}
     />
   );
 }

@@ -53,3 +53,6 @@ export const downloadFile = async (url: string, destination: string) => {
   await writeFile(destination, Buffer.from(await response.arrayBuffer()));
   return destination;
 };
+
+export const cancelPrediction = (id: string) =>
+  replicateFetch<unknown>(`/predictions/${id}/cancel`, { method: "POST" });
