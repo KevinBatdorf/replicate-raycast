@@ -30,7 +30,7 @@ export default function Command() {
           accessories={[{ icon: Icon.ArrowNe }]}
           actions={
             <ActionPanel>
-              <Action.OpenInBrowser title="Show Details" url={"https://replicate.com/collections/diffusion-models"} />
+              <Action.OpenInBrowser title="Show Details" url="https://replicate.com/explore" />
             </ActionPanel>
           }
         />

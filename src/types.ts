@@ -16,9 +16,3 @@ export type Prediction = {
     predict_time: number;
   };
 };
-export type dbEntry = {
-  id: string;
-  src: string;
-  url: string;
-  prompt?: string;
-};

@@ -183,9 +183,10 @@ export default function RenderForm(props: { modelName: string }) {
 
   useEffect(() => {
     updateForm(props.modelName);
-    getModelsByCollection("diffusion-models").then((models) => {
-      setModelOptions(JSON.parse(models));
-    });
+    getModelsByCollection("text-to-image")
+      .then((models) => setModelOptions(JSON.parse(models)))
+      // A retired or renamed collection leaves the built-in model list in place.
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -203,7 +204,9 @@ export default function RenderForm(props: { modelName: string }) {
         ))}
       </Form.Dropdown>
       <Form.Separator />
-      {options.map((option) => RenderFormInput({ option, modelName }))}
+      {options.map((option) => (
+        <RenderFormInput key={`${modelName}-${option.name}`} option={option} modelName={modelName} />
+      ))}
     </Form>
   );
 }

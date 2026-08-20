@@ -34,8 +34,18 @@ export const buildPredictionsList = (data?: Prediction[]) => {
 };
 
 export const succeeded = (prediction: Prediction) => prediction.status === "succeeded";
+
+// is-image reads everything past the last dot, so a signed URL's query breaks it.
+const looksLikeImage = (url: string) => {
+  try {
+    return isImage(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+};
+
 export const isAnImage = ({ output }: Prediction) =>
-  typeof output === "string" ? isImage(output) : output?.every((url: string) => isImage(url));
+  typeof output === "string" ? looksLikeImage(output) : (output?.every(looksLikeImage) ?? false);
 export const isUrl = (prediction: Prediction) => {
   try {
     if (!Array.isArray(prediction.output)) {
