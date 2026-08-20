@@ -12,7 +12,7 @@ type Props = {
 export const ListDetails = ({ isLoading, search, setSearch }: Props) => {
   const { data: results, isLoading: searching } = useSQL(
     DB_FILE_PATH,
-    `SELECT * FROM Prediction WHERE prompt LIKE '%${search}%'`
+    `SELECT * FROM Prediction WHERE prompt LIKE '%${search}%'`,
   );
   return (
     <List isShowingDetail isLoading={isLoading || searching} searchText={search} onSearchTextChange={setSearch}>
@@ -29,7 +29,8 @@ export const ListDetails = ({ isLoading, search, setSearch }: Props) => {
             detail={<List.Item.Detail markdown={markdown} />}
             actions={
               <ActionPanel>
-                <Action icon={Icon.Image} title="Copy Image" onAction={() => copyImage(src)} />
+                <Action icon={Icon.SaveDocument} title="Save Image" onAction={() => saveImage(src)} />
+                <Action icon={Icon.CopyClipboard} title="Copy Image" onAction={() => copyImage(src)} />
                 {prompt && <Action.CopyToClipboard icon={Icon.Text} title="Copy Prompt" content={prompt.trim()} />}
               </ActionPanel>
             }

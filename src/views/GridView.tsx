@@ -1,10 +1,9 @@
 import { useLayoutEffect, useState } from "react";
-import { ActionPanel, Action, Grid, getPreferenceValues, Icon, List, openCommandPreferences } from "@raycast/api";
+import { ActionPanel, Action, Grid, Icon, List, openCommandPreferences } from "@raycast/api";
 import { Prediction, PredictionResponse } from "../types";
-import { PREDICTIONS_URL } from "../constants";
 import { buildPredictionsList, copyImage, showAuthError, saveImage } from "../utils/helpers";
+import { errorMessage, isAuthError, replicateFetch } from "../lib/replicate";
 import { Single } from "./Single";
-import fetch from "node-fetch";
 
 type Props = {
   onSearchTextChange?: (search: string) => void;
@@ -14,23 +13,14 @@ export const GridView = ({ isLoading, onSearchTextChange }: Props) => {
   const [predictions, setData] = useState<Prediction[]>();
   const [columns, setColumns] = useState("6");
   const [error, setError] = useState("");
-  const { token } = getPreferenceValues();
-  const headers = { Authorization: `Token ${token}` };
 
   useLayoutEffect(() => {
-    fetch(PREDICTIONS_URL, { headers })
-      .then(async (response) => {
-        if (!response.ok) {
-          showAuthError("Communication Error", response.statusText);
-          throw new Error(`Communication Error: ${response.statusText}`);
-        }
-        return await response.json();
-      })
-      .then((response) => {
-        const data = response as PredictionResponse;
-        setData(buildPredictionsList(data.results));
-      })
-      .catch((error) => setError(error.message));
+    replicateFetch<PredictionResponse>("/predictions")
+      .then((data) => setData(buildPredictionsList(data.results)))
+      .catch((error) => {
+        if (isAuthError(error)) showAuthError(undefined, errorMessage(error));
+        setError(errorMessage(error));
+      });
   }, []);
 
   if (error) {
@@ -42,7 +32,7 @@ export const GridView = ({ isLoading, onSearchTextChange }: Props) => {
           description={error}
           actions={
             <ActionPanel>
-              <Action icon={Icon.Gear} title="Update token" onAction={openCommandPreferences} />
+              <Action icon={Icon.Gear} title="Update Token" onAction={openCommandPreferences} />
             </ActionPanel>
           }
         />

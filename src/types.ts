@@ -9,7 +9,7 @@ export type Prediction = {
   urls: {
     get: string;
   };
-  input: { prompt?: string } & Record<string, any>;
+  input: { prompt?: string } & Record<string, unknown>;
   status: "starting" | "processing" | "succeeded" | "failed" | "cancelled";
   output: string[] | string;
   metrics: {

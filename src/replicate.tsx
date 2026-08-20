@@ -1,30 +1,22 @@
-import { ActionPanel, Action, getPreferenceValues, List, Icon } from "@raycast/api";
+import { ActionPanel, Action, List, Icon } from "@raycast/api";
 import RenderForm from "./components/Form";
 import ViewPredictions from "./viewPredictions";
 
 export default function Command() {
-  const { token } = getPreferenceValues();
-
   return (
     <>
       <List>
         <List.Item
-          icon={{
-            source:
-              "https://user-images.githubusercontent.com/14149230/223854538-71327569-76b5-4f77-903c-edf205569927.png",
-          }}
+          icon={{ source: "replicate.png" }}
           title="Run a Model"
           actions={
             <ActionPanel>
-              <Action.Push title="Show Details" target={<RenderForm token={token} modelName={"stable-diffusion"} />} />
+              <Action.Push title="Show Details" target={<RenderForm modelName={"stable-diffusion"} />} />
             </ActionPanel>
           }
         />
         <List.Item
-          icon={{
-            source:
-              "https://user-images.githubusercontent.com/14149230/223854538-71327569-76b5-4f77-903c-edf205569927.png",
-          }}
+          icon={{ source: "replicate.png" }}
           title="View Predictions"
           actions={
             <ActionPanel>
@@ -33,10 +25,7 @@ export default function Command() {
           }
         />
         <List.Item
-          icon={{
-            source:
-              "https://user-images.githubusercontent.com/14149230/223854538-71327569-76b5-4f77-903c-edf205569927.png",
-          }}
+          icon={{ source: "replicate.png" }}
           title="Explore Models"
           accessories={[{ icon: Icon.ArrowNe }]}
           actions={
@@ -46,10 +35,7 @@ export default function Command() {
           }
         />
         <List.Item
-          icon={{
-            source:
-              "https://user-images.githubusercontent.com/14149230/223854538-71327569-76b5-4f77-903c-edf205569927.png",
-          }}
+          icon={{ source: "replicate.png" }}
           title="Dashboard"
           accessories={[{ icon: Icon.ArrowNe }]}
           actions={
@@ -59,10 +45,7 @@ export default function Command() {
           }
         />
         <List.Item
-          icon={{
-            source:
-              "https://user-images.githubusercontent.com/14149230/223854538-71327569-76b5-4f77-903c-edf205569927.png",
-          }}
+          icon={{ source: "replicate.png" }}
           title="Docs"
           accessories={[{ icon: Icon.ArrowNe }]}
           actions={

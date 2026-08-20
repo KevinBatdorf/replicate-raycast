@@ -1,18 +1,14 @@
-import fetch from "node-fetch";
-import { Prediction } from "../types";
-import { temporaryFile } from "tempy";
-import fs from "fs";
-import { getPreferenceValues, openCommandPreferences, showHUD, showToast, Toast } from "@raycast/api";
-import { runAppleScript } from "run-applescript";
-import { PREDICTIONS_URL } from "../constants";
+import { Clipboard, environment, openCommandPreferences, showHUD, showToast, Toast } from "@raycast/api";
+import { homedir } from "node:os";
+import { extname, join } from "node:path";
 import isImage from "is-image";
-import os from "os";
+import { Prediction } from "../types";
+import { downloadFile, errorMessage } from "../lib/replicate";
 
 export const buildPredictionsList = (data?: Prediction[]) => {
   if (!data) return undefined;
   if (!data.length) return [];
   const predictions: Prediction[] = [];
-  // iterate over the URLs and if more than one is returned, clone it back in
   data
     ?.filter(succeeded)
     ?.filter(isUrl)
@@ -48,66 +44,54 @@ export const isUrl = (prediction: Prediction) => {
     }
     prediction?.output.forEach((url) => new URL(url));
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
 export const makeTitle = (str: string) =>
-  str.replace(/_/g, " ").replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  str.replace(/_/g, " ").replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+
+const outputFileName = (url: string) => {
+  const segments = new URL(url).pathname.split("/").filter(Boolean);
+  const name = segments.at(-2) ?? "replicate";
+  return `${name}${extname(segments.at(-1) ?? "") || ".png"}`;
+};
 
 export const copyImage = async (url: string) => {
-  const tempFile = temporaryFile({ extension: "png" });
-  const { hide } = await showToast(Toast.Style.Animated, "Copying image...");
-  const response = await fetch(url);
-
-  if (response.status !== 200) {
-    await showHUD(`❗Image copy failed. Server responded with ${response.status}`);
-    hide();
-    return;
-  }
-  if (response.body !== null) {
-    response.body.pipe(fs.createWriteStream(tempFile));
-    await runAppleScript(`tell app "Finder" to set the clipboard to ( POSIX file "${tempFile}" )`);
+  const toast = await showToast(Toast.Style.Animated, "Copying image...");
+  try {
+    const file = await downloadFile(url, join(environment.supportPath, outputFileName(url)));
+    await Clipboard.copy({ file });
+    toast.hide();
     await showHUD("✅ Image copied to clipboard!");
-    hide();
+  } catch (error) {
+    toast.style = Toast.Style.Failure;
+    toast.title = "Could Not Copy the Image";
+    toast.message = errorMessage(error);
   }
-};
-
-export const buildPaginatedUrl = (cursor: string | undefined) => {
-  const { token } = getPreferenceValues();
-  const headers = { Authorization: `Token ${token}` };
-  const apiEndpoint = new URL(PREDICTIONS_URL);
-  if (cursor) apiEndpoint.searchParams.set("cursor", cursor);
-  return { apiEndpoint, headers };
-};
-
-export const showAuthError = (title?: string, message?: string) => {
-  showToast({
-    title: message ?? "",
-    style: Toast.Style.Failure,
-    primaryAction: {
-      title: "Update token",
-      onAction: openCommandPreferences,
-    },
-  });
 };
 
 export const saveImage = async (url: string) => {
-  const predictionId = url.split("/").at(-2);
-  const downloadDir = `${os.homedir()}/Downloads/${predictionId}.png`;
-  const { hide } = await showToast(Toast.Style.Animated, "Saving image...");
-  const response = await fetch(url);
-
-  if (response.status !== 200) {
-    await showHUD(`❗Image save failed. Server responded with ${response.status}`);
-    hide();
-    return;
-  }
-  if (response.body !== null) {
-    response.body.pipe(fs.createWriteStream(downloadDir));
-    await showHUD(`✅ Image saved to ${downloadDir}!`);
-
-    hide();
-    return;
+  const destination = join(homedir(), "Downloads", outputFileName(url));
+  const toast = await showToast(Toast.Style.Animated, "Saving image...");
+  try {
+    await downloadFile(url, destination);
+    toast.hide();
+    await showHUD(`✅ Image saved to ${destination}`);
+  } catch (error) {
+    toast.style = Toast.Style.Failure;
+    toast.title = "Could Not Save the Image";
+    toast.message = errorMessage(error);
   }
 };
+
+export const showAuthError = (title?: string, message?: string) =>
+  showToast({
+    title: title ?? "Replicate Rejected the Request",
+    message,
+    style: Toast.Style.Failure,
+    primaryAction: {
+      title: "Update Token",
+      onAction: openCommandPreferences,
+    },
+  });

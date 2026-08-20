@@ -18,8 +18,19 @@ export type ModelVersion = {
   openapi_schema: OpenApiSchema;
 };
 
+export type OptionSchema = {
+  type?: string;
+  default?: string | number | boolean;
+  description?: string;
+  enum?: string[];
+  allOf?: { $ref: string }[];
+  "x-order"?: number;
+};
+
 export type OpenApiSchema = {
-  [key: string]: any;
+  components: {
+    schemas: Record<string, OptionSchema & { properties?: Record<string, OptionSchema> }>;
+  };
 };
 
 export const models: Model[] = [
