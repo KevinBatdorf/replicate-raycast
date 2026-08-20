@@ -1,5 +1,5 @@
 import { ActionPanel, Action, List, Icon } from "@raycast/api";
-import { RunModel } from "./views/RunModel";
+import { ModelList } from "./views/ModelList";
 import ViewPredictions from "./viewPredictions";
 
 export default function Command() {
@@ -11,7 +11,7 @@ export default function Command() {
           title="Run a Model"
           actions={
             <ActionPanel>
-              <Action.Push title="Show Details" target={<RunModel />} />
+              <Action.Push title="Show Details" target={<ModelList />} />
             </ActionPanel>
           }
         />

@@ -1,7 +1,15 @@
 import { getPreferenceValues } from "@raycast/api";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { Model, ModelsResponse, Prediction, ReplicateFile, SearchResponse } from "../types";
+import {
+  CollectionResponse,
+  CollectionsResponse,
+  Model,
+  ModelsResponse,
+  Prediction,
+  ReplicateFile,
+  SearchResponse,
+} from "../types";
 
 const API_BASE = "https://api.replicate.com/v1";
 
@@ -72,7 +80,16 @@ export const listModels = async () => {
     path = response.next ?? undefined;
   }
 
-  return models.sort((first, second) => (second.run_count ?? 0) - (first.run_count ?? 0));
+  return models.sort(byRunCount);
+};
+
+const byRunCount = (first: Model, second: Model) => (second.run_count ?? 0) - (first.run_count ?? 0);
+
+export const listCollections = async () => (await replicateFetch<CollectionsResponse>("/collections")).results;
+
+export const collectionModels = async (slug: string) => {
+  const collection = await replicateFetch<CollectionResponse>(`/collections/${slug}`);
+  return (collection.models ?? []).sort(byRunCount);
 };
 
 export const searchModels = async (query: string) => {

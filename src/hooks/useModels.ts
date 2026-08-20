@@ -1,8 +1,13 @@
 import { useCachedPromise } from "@raycast/utils";
-import { listModels, searchModels } from "../lib/replicate";
+import { collectionModels, listModels, searchModels } from "../lib/replicate";
 
-export const useModels = (query: string) =>
-  useCachedPromise((search: string) => (search.trim() ? searchModels(search.trim()) : listModels()), [query], {
-    keepPreviousData: true,
-    initialData: [],
-  });
+export const useModels = (query: string, collection?: string) =>
+  useCachedPromise(
+    (search: string, slug?: string) => {
+      if (search.trim()) return searchModels(search.trim());
+      if (slug) return collectionModels(slug);
+      return listModels();
+    },
+    [query, collection],
+    { keepPreviousData: true, initialData: [] },
+  );

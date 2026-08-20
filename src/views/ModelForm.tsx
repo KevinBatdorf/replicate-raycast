@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useLocalStorage } from "@raycast/utils";
 import { createPrediction, errorMessage, isAuthError, uploadFile } from "../lib/replicate";
+import { Model } from "../types";
 import { showAuthError } from "../utils/helpers";
-import { formatRuns } from "../utils/format";
 import { Field, modelFields } from "../utils/schema";
 import { useModel } from "../hooks/useModel";
-import { useModels } from "../hooks/useModels";
 import { ModelField } from "./ModelField";
 import { PredictionDetail } from "./PredictionDetail";
 
@@ -41,36 +40,27 @@ const buildInput = async (fields: Field[], values: FormValues) => {
   return input;
 };
 
-export const RunModel = () => {
+type Props = {
+  model: Model;
+};
+export const ModelForm = ({ model: listed }: Props) => {
   const { push } = useNavigation();
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const id = `${listed.owner}/${listed.name}`;
 
-  const { data: models, isLoading: loadingModels } = useModels(query);
-  const { data: model, isLoading: loadingModel } = useModel(selected);
-  const {
-    value: lastModel,
-    setValue: setLastModel,
-    isLoading: loadingLastModel,
-  } = useLocalStorage<string>("last-model");
+  // A listed model carries no schema, so the inputs need the model's own endpoint.
+  const { data: fetched, isLoading } = useModel(listed.latest_version ? undefined : id);
+  const model = listed.latest_version ? listed : fetched;
+
   const { value: lastInputs, setValue: setLastInputs } = useLocalStorage<Record<string, Record<string, string>>>(
     "last-inputs",
     {},
   );
 
-  useEffect(() => {
-    if (selected || loadingLastModel) return;
-    setSelected(lastModel ?? (models?.length ? `${models[0].owner}/${models[0].name}` : undefined));
-  }, [selected, loadingLastModel, lastModel, models]);
-
   const fields = modelFields(model);
-  const options = models ?? [];
-  const loadingFields = Boolean(selected) && (loadingModel || loadingLastModel || !model);
-  const missingSelected = selected && !options.some((option) => `${option.owner}/${option.name}` === selected);
 
   const handleSubmit = async (values: FormValues) => {
-    if (!model || !selected) return;
+    if (!model) return;
 
     const missing = fields.filter(
       (field) => field.required && field.kind !== "boolean" && !String(values[field.name] ?? "").trim(),
@@ -98,8 +88,7 @@ export const RunModel = () => {
       const remembered = Object.fromEntries(
         Object.entries(input).map(([key, value]) => [key, typeof value === "string" ? value : String(value)]),
       );
-      await setLastModel(selected);
-      await setLastInputs({ ...(lastInputs ?? {}), [selected]: remembered });
+      await setLastInputs({ ...(lastInputs ?? {}), [id]: remembered });
 
       toast.hide();
       push(<PredictionDetail id={prediction.id} initial={prediction} />);
@@ -119,60 +108,25 @@ export const RunModel = () => {
     }
   };
 
+  if (isLoading || !model) {
+    return <Form isLoading navigationTitle={id} />;
+  }
+
   return (
     <Form
-      isLoading={loadingModels || loadingFields || isSubmitting}
+      isLoading={isSubmitting}
+      navigationTitle={id}
+      searchBarAccessory={<Form.LinkAccessory target={`https://replicate.com/${id}`} text="Open on Replicate" />}
       actions={
         <ActionPanel>
-          {!loadingFields && <Action.SubmitForm icon={Icon.Play} title="Run Model" onSubmit={handleSubmit} />}
-          {selected && (
-            <Action.OpenInBrowser
-              icon={Icon.Globe}
-              title="Open Model on Replicate"
-              url={`https://replicate.com/${selected}`}
-            />
-          )}
+          <Action.SubmitForm icon={Icon.Play} title="Run Model" onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
-      <Form.Dropdown
-        id="model"
-        title="Model"
-        value={selected}
-        onChange={setSelected}
-        onSearchTextChange={setQuery}
-        throttle
-        isLoading={loadingModels}
-      >
-        {missingSelected && <Form.Dropdown.Item key={selected} value={selected} title={selected} />}
-        {options.map((option) => {
-          const id = `${option.owner}/${option.name}`;
-          const runs = formatRuns(option.run_count);
-          return (
-            <Form.Dropdown.Item
-              key={id}
-              value={id}
-              title={runs ? `${id} · ${runs}` : id}
-              icon={option.cover_image_url ?? Icon.Box}
-            />
-          );
-        })}
-      </Form.Dropdown>
-      <Form.Separator />
-      {loadingFields ? (
-        <Form.Description title="Inputs" text={`Loading what ${selected} takes...`} />
-      ) : (
-        fields.map((field) => (
-          <ModelField
-            key={`${selected}-${field.name}`}
-            field={field}
-            defaultValue={selected ? lastInputs?.[selected]?.[field.name] : undefined}
-          />
-        ))
-      )}
-      {!loadingFields && !fields.length && (
-        <Form.Description text={model ? "This model exposes no inputs." : "Pick a model to see its inputs."} />
-      )}
+      {fields.map((field) => (
+        <ModelField key={field.name} field={field} defaultValue={lastInputs?.[id]?.[field.name]} />
+      ))}
+      {!fields.length && <Form.Description text="This model exposes no inputs." />}
     </Form>
   );
 };

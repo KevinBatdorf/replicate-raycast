@@ -78,3 +78,18 @@ export type ReplicateFile = {
   id: string;
   urls?: { get?: string };
 };
+
+export type Collection = {
+  name: string;
+  slug: string;
+  description?: string;
+};
+
+export type CollectionsResponse = {
+  results: Collection[];
+  next: string | null;
+};
+
+export type CollectionResponse = Collection & {
+  models?: Model[];
+};
