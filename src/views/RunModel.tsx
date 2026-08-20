@@ -3,6 +3,7 @@ import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from
 import { useLocalStorage } from "@raycast/utils";
 import { createPrediction, errorMessage, isAuthError, uploadFile } from "../lib/replicate";
 import { showAuthError } from "../utils/helpers";
+import { formatRuns } from "../utils/format";
 import { Field, modelFields } from "../utils/schema";
 import { useModel } from "../hooks/useModel";
 import { useModels } from "../hooks/useModels";
@@ -146,7 +147,15 @@ export const RunModel = () => {
         {missingSelected && <Form.Dropdown.Item key={selected} value={selected} title={selected} />}
         {options.map((option) => {
           const id = `${option.owner}/${option.name}`;
-          return <Form.Dropdown.Item key={id} value={id} title={id} icon={option.cover_image_url ?? Icon.Box} />;
+          const runs = formatRuns(option.run_count);
+          return (
+            <Form.Dropdown.Item
+              key={id}
+              value={id}
+              title={runs ? `${id} · ${runs}` : id}
+              icon={option.cover_image_url ?? Icon.Box}
+            />
+          );
         })}
       </Form.Dropdown>
       <Form.Separator />

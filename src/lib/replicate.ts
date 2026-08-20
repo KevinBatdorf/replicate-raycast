@@ -59,7 +59,21 @@ export const downloadFile = async (url: string, destination: string) => {
 export const cancelPrediction = (id: string) =>
   replicateFetch<unknown>(`/predictions/${id}/cancel`, { method: "POST" });
 
-export const listModels = async () => (await replicateFetch<ModelsResponse>("/models")).results;
+const MODEL_PAGES = 3;
+
+// The API only sorts models by creation date, so popularity has to be sorted here.
+export const listModels = async () => {
+  const models: Model[] = [];
+  let path: string | undefined = "/models";
+
+  for (let page = 0; page < MODEL_PAGES && path; page += 1) {
+    const response: ModelsResponse = await replicateFetch<ModelsResponse>(path);
+    models.push(...response.results);
+    path = response.next ?? undefined;
+  }
+
+  return models.sort((first, second) => (second.run_count ?? 0) - (first.run_count ?? 0));
+};
 
 export const searchModels = async (query: string) => {
   const response = await replicateFetch<SearchResponse>(`/search?query=${encodeURIComponent(query)}&limit=20`);
