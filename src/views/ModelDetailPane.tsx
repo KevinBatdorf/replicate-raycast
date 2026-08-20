@@ -1,6 +1,5 @@
 import { List } from "@raycast/api";
 import { Model } from "../types";
-import { formatRuns } from "../utils/format";
 import { firstImage, outputItems } from "../utils/output";
 
 const IMAGE_WIDTH = 200;
@@ -31,7 +30,6 @@ export const ModelDetailPane = ({ model, full }: Props) => {
   const markdown = [
     image ? `![${details.name}](${sized(image)})` : undefined,
     details.description,
-    formatRuns(details.run_count),
     prompt ? `**Example prompt** — ${prompt}` : undefined,
     links.length ? links.join("  ·  ") : undefined,
   ]
