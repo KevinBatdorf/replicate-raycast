@@ -62,6 +62,10 @@ export type Model = {
   description?: string;
   cover_image_url?: string | null;
   run_count?: number;
+  github_url?: string | null;
+  paper_url?: string | null;
+  license_url?: string | null;
+  default_example?: Prediction | null;
   latest_version?: ModelVersion | null;
 };
 

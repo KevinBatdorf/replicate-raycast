@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Action, ActionPanel, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useLocalStorage } from "@raycast/utils";
 import { createPrediction, errorMessage, isAuthError, uploadFile } from "../lib/replicate";
@@ -42,8 +42,9 @@ const buildInput = async (fields: Field[], values: FormValues) => {
 
 type Props = {
   model: Model;
+  onOpen?: (model: Model) => void;
 };
-export const ModelForm = ({ model: listed }: Props) => {
+export const ModelForm = ({ model: listed, onOpen }: Props) => {
   const { push } = useNavigation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const id = `${listed.owner}/${listed.name}`;
@@ -56,6 +57,10 @@ export const ModelForm = ({ model: listed }: Props) => {
     "last-inputs",
     {},
   );
+
+  useEffect(() => {
+    onOpen?.(listed);
+  }, []);
 
   const fields = modelFields(model);
 
