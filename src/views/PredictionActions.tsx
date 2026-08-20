@@ -33,16 +33,16 @@ export const PredictionActions = ({ prediction, items, revalidate }: Props) => {
     <>
       {file && (
         <Action
-          icon={Icon.SaveDocument}
-          title={`Save ${kindLabel(file.kind)}`}
-          onAction={() => saveOutputFile(file.url)}
+          icon={Icon.CopyClipboard}
+          title={`Copy ${kindLabel(file.kind)}`}
+          onAction={() => copyOutputFile(file.url)}
         />
       )}
       {file && (
         <Action
-          icon={Icon.CopyClipboard}
-          title={`Copy ${kindLabel(file.kind)}`}
-          onAction={() => copyOutputFile(file.url)}
+          icon={Icon.SaveDocument}
+          title={`Save ${kindLabel(file.kind)}`}
+          onAction={() => saveOutputFile(file.url)}
         />
       )}
       {file && <Action.OpenInBrowser icon={Icon.Eye} title={`Open ${kindLabel(file.kind)}`} url={file.url} />}
