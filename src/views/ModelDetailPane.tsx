@@ -24,7 +24,6 @@ export const ModelDetailPane = ({ model, full }: Props) => {
   ].filter(Boolean);
 
   const markdown = [
-    `## ${details.owner}/${details.name}`,
     image ? `![${details.name}](${image})` : undefined,
     details.description,
     formatRuns(details.run_count),
