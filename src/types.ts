@@ -26,3 +26,55 @@ export type Prediction = {
     predict_time?: number;
   };
 };
+
+export type OptionSchema = {
+  type?: string;
+  format?: string;
+  title?: string;
+  default?: string | number | boolean;
+  description?: string;
+  enum?: string[];
+  allOf?: { $ref: string }[];
+  minimum?: number;
+  maximum?: number;
+  "x-order"?: number;
+};
+
+export type InputSchema = OptionSchema & {
+  properties?: Record<string, OptionSchema>;
+  required?: string[];
+};
+
+export type OpenApiSchema = {
+  components: {
+    schemas: Record<string, InputSchema>;
+  };
+};
+
+export type ModelVersion = {
+  id: string;
+  openapi_schema: OpenApiSchema;
+};
+
+export type Model = {
+  owner: string;
+  name: string;
+  description?: string;
+  cover_image_url?: string | null;
+  run_count?: number;
+  latest_version?: ModelVersion | null;
+};
+
+export type ModelsResponse = {
+  results: Model[];
+  next: string | null;
+};
+
+export type SearchResponse = {
+  models?: { model: Model; metadata?: { tags?: string[] } }[];
+};
+
+export type ReplicateFile = {
+  id: string;
+  urls?: { get?: string };
+};

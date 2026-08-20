@@ -1,5 +1,5 @@
 import { ActionPanel, Action, List, Icon } from "@raycast/api";
-import RenderForm from "./components/Form";
+import { RunModel } from "./views/RunModel";
 import ViewPredictions from "./viewPredictions";
 
 export default function Command() {
@@ -11,7 +11,7 @@ export default function Command() {
           title="Run a Model"
           actions={
             <ActionPanel>
-              <Action.Push title="Show Details" target={<RenderForm modelName={"stable-diffusion"} />} />
+              <Action.Push title="Show Details" target={<RunModel />} />
             </ActionPanel>
           }
         />
