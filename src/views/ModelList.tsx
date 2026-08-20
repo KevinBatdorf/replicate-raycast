@@ -24,8 +24,8 @@ export const ModelList = () => {
   const [collection, setCollection] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
-  const { data: models, isLoading } = useModels(query, collection);
-  const { data: collections } = useCollections();
+  const { data: models = [], isLoading } = useModels(query, collection);
+  const { data: collections = [] } = useCollections();
   const { recents, remember } = useRecentModels();
   const { data: full } = useModel(selected ?? undefined);
 

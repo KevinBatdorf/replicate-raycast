@@ -1,13 +1,13 @@
-import { useCachedPromise } from "@raycast/utils";
+import { usePromise } from "@raycast/utils";
 import { collectionModels, listModels, searchModels } from "../lib/replicate";
+import { DAY_MS, cached } from "../lib/cache";
 
 export const useModels = (query: string, collection?: string) =>
-  useCachedPromise(
+  usePromise(
     (search: string, slug?: string) => {
       if (search.trim()) return searchModels(search.trim());
-      if (slug) return collectionModels(slug);
-      return listModels();
+      if (slug) return cached(`collection:${slug}`, DAY_MS, () => collectionModels(slug));
+      return cached("models:most-run", DAY_MS, listModels);
     },
     [query, collection],
-    { keepPreviousData: true, initialData: [] },
   );

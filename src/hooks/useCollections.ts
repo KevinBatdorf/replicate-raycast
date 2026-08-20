@@ -1,4 +1,5 @@
-import { useCachedPromise } from "@raycast/utils";
+import { usePromise } from "@raycast/utils";
 import { listCollections } from "../lib/replicate";
+import { DAY_MS, cached } from "../lib/cache";
 
-export const useCollections = () => useCachedPromise(listCollections, [], { initialData: [] });
+export const useCollections = () => usePromise(() => cached("collections", DAY_MS, listCollections), []);
