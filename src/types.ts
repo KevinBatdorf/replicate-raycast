@@ -4,21 +4,25 @@ export type PredictionResponse = {
   results: Prediction[];
   detail?: string;
 };
+
+export type PredictionStatus = "starting" | "processing" | "succeeded" | "failed" | "canceled";
+
 export type Prediction = {
   id: string;
-  urls: {
-    get: string;
+  model?: string;
+  version?: string;
+  urls?: {
+    get?: string;
+    cancel?: string;
   };
-  input: { prompt?: string } & Record<string, any>;
-  status: "starting" | "processing" | "succeeded" | "failed" | "cancelled";
-  output: string[] | string;
-  metrics: {
-    predict_time: number;
+  input?: { prompt?: string } & Record<string, unknown>;
+  status: PredictionStatus;
+  output?: unknown;
+  error?: string | null;
+  logs?: string | null;
+  created_at?: string;
+  completed_at?: string;
+  metrics?: {
+    predict_time?: number;
   };
-};
-export type dbEntry = {
-  id: string;
-  src: string;
-  url: string;
-  prompt?: string;
 };

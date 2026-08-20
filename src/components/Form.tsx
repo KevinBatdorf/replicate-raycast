@@ -1,35 +1,19 @@
 import { useEffect, useState } from "react";
-import { Form, ActionPanel, Action, showToast, Toast, confirmAlert } from "@raycast/api";
-import fetch from "node-fetch";
-import delay from "delay";
-import { models, Model, OpenApiSchema } from "../models";
-import open from "open";
+import { Form, ActionPanel, Action, showToast, Toast, useNavigation } from "@raycast/api";
+import { models, Model, OptionSchema } from "../models";
 import crypto from "crypto";
-import { copyImage, saveImage } from "../utils/helpers";
+import { showAuthError } from "../utils/helpers";
+import { errorMessage, isAuthError, replicateFetch } from "../lib/replicate";
+import { Prediction } from "../types";
+import { PredictionDetail } from "../views/PredictionDetail";
 
-type Values = {
-  textfield: string;
-  textarea: string;
-  datepicker: Date;
-  checkbox: boolean;
-  dropdown: string;
-  tokeneditor: string[];
-};
+type FormValue = string | number | boolean | Date | string[];
+type FormValues = Record<string, FormValue>;
 
 type Option = {
-  name?: string;
-  "x-order"?: string;
-  values?: {
-    default: string;
-    description: string;
-    type: string;
-    enum: string[];
-  };
-  [key: string]: any;
-};
-
-type Prediction = {
-  [key: string]: any;
+  name: string;
+  values: OptionSchema;
+  enums: string[];
 };
 
 interface ModelResult {
@@ -38,18 +22,19 @@ interface ModelResult {
 
 const generateId = (name: string) => `${crypto.randomUUID()}-${name}`;
 
-export default function RenderForm(props: { token: string; modelName: string }) {
+export default function RenderForm(props: { modelName: string }) {
+  const { push } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<Option[]>([]);
   const [modelName, setModelName] = useState(props.modelName);
   const [modelOptions, setModelOptions] = useState<Model[]>(models);
 
-  async function handler(values: Values) {
+  async function handler(values: FormValues) {
     const model = (await getModelByName(modelName)) as Model;
 
-    let filteredValues: Option = Object.fromEntries(Object.entries(values).filter(([_, v]) => v));
+    let filteredValues: FormValues = Object.fromEntries(Object.entries(values).filter(([, v]) => v));
     filteredValues = Object.fromEntries(
-      Object.entries(filteredValues).map(([k, v]) => [k.replace(model.name, "").replace("-", ""), v])
+      Object.entries(filteredValues).map(([k, v]) => [k.replace(model.name, "").replace("-", ""), v]),
     );
 
     // Form fields hand back strings; Replicate 422s when a number arrives quoted.
@@ -67,22 +52,13 @@ export default function RenderForm(props: { token: string; modelName: string }) 
       }
     }
 
-    console.log("Submission: ", filteredValues);
-
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
+    return await replicateFetch<Prediction>("/predictions", {
       method: "POST",
-      headers: {
-        Authorization: `Token ${props.token}`,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         version: model?.latest_version?.id,
         input: filteredValues,
       }),
     });
-
-    const prediction = (await response.json()) as Prediction;
-    return prediction;
   }
 
   async function getModelByName(name: string) {
@@ -91,28 +67,11 @@ export default function RenderForm(props: { token: string; modelName: string }) 
   }
 
   async function getModel(owner: string, name: string) {
-    const response = await fetch(`https://api.replicate.com/v1/models/${owner}/${name}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Token ${props.token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const result = (await response.json()) as Model;
-    return result;
+    return await replicateFetch<Model>(`/models/${owner}/${name}`);
   }
 
   async function getModelsByCollection(collection: string) {
-    const response = await fetch(`https://api.replicate.com/v1/collections/${collection}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Token ${props.token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const result: ModelResult = (await response.json()) as ModelResult;
+    const result = await replicateFetch<ModelResult>(`/collections/${collection}`);
 
     result.models.map((model: Model) => {
       model.id = generateId(model.name);
@@ -121,112 +80,52 @@ export default function RenderForm(props: { token: string; modelName: string }) 
     return JSON.stringify(result.models as Model[]);
   }
 
-  const parseModelInputs = (model: Model) => {
-    const options = model.latest_version?.openapi_schema.components.schemas.Input.properties;
+  const parseModelInputs = (model: Model): Option[] => {
+    const schemas = model.latest_version?.openapi_schema.components.schemas ?? {};
+    const properties = schemas.Input?.properties ?? {};
 
-    const newOptions = Object.keys(options).map((key) => {
-      if ("allOf" in options[key]) {
-        const relevantEnums = (
-          (Object.entries(model.latest_version?.openapi_schema.components.schemas) as []).filter(
-            (entry) => (entry[0] as string) === key
-          )[0][1] as OpenApiSchema
-        ).enum;
-
-        return { name: key, values: options[key], enums: relevantEnums };
-      } else {
-        return { name: key, values: options[key], enums: [] };
-      }
-    });
-
-    return newOptions;
+    return Object.entries(properties).map(([name, values]) => ({
+      name,
+      values,
+      // An allOf input keeps its enum in a sibling schema of the same name.
+      enums: values.allOf ? (schemas[name]?.enum ?? []) : [],
+    }));
   };
 
-  const handleSubmit = async (values: Values) => {
+  const handleSubmit = async (values: FormValues) => {
     setIsLoading(true);
-    let prediction = await handler(values);
-
-    while (prediction.status !== "succeeded" && prediction.status !== "failed") {
-      await delay(1000);
-      const response = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Token ${props.token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      prediction = (await response.json()) as Prediction;
-
-      if (response.status !== 200 || prediction.status == "failed") {
-        setIsLoading(false);
-        showToast({
-          style: Toast.Style.Failure,
-          title: "Error",
-          message: `Something went wrong`,
-          primaryAction: {
-            title: "View Prediction on Replicate",
-            onAction: () => {
-              open(`https://replicate.com/p/${prediction.id}`);
-            },
-          },
-        });
+    try {
+      const prediction = await handler(values);
+      push(<PredictionDetail id={prediction.id} initial={prediction} />);
+    } catch (error) {
+      if (isAuthError(error)) {
+        await showAuthError(undefined, errorMessage(error));
         return;
       }
-
-      console.log(prediction.logs);
-
-      if (prediction.status === "succeeded") {
-        setIsLoading(false);
-
-        const start = new Date(prediction.created_at);
-        const end = new Date(prediction.completed_at);
-
-        const differenceInSeconds = (end.getTime() - start.getTime()) / 1000;
-
-        await confirmAlert({
-          title: "Prediction Complete",
-          message: `Your prediction for '${prediction.input.prompt}' finished in ${differenceInSeconds} seconds. Copy the image to your clipboard?`,
-          icon: {
-            source: prediction.output[0],
-          },
-          primaryAction: {
-            title: "Copy to Clipboard",
-            onAction: () => {
-              copyImage(prediction.output[0]);
-            },
-          },
-          dismissAction: {
-            title: "Close",
-          },
-        });
-
-        showToast({
-          style: Toast.Style.Success,
-          title: "Prediction Success",
-          message: prediction.output[0],
-          primaryAction: {
-            title: "Save Output as File",
-            onAction: () => {
-              saveImage(prediction.output[0]);
-            },
-          },
-        });
-      }
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Could Not Run the Model",
+        message: errorMessage(error),
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   function updateForm(modelName: string) {
     getModelByName(modelName).then((model) => {
       const options = parseModelInputs(model);
-      setOptions(options.sort((a, b) => (a.values["x-order"] > b.values["x-order"] ? 1 : -1)));
+      setOptions(options.sort((a, b) => (a.values["x-order"] ?? 0) - (b.values["x-order"] ?? 0)));
       setModelName(modelName);
     });
   }
 
   useEffect(() => {
     updateForm(props.modelName);
-    getModelsByCollection("diffusion-models").then((models) => {
-      setModelOptions(JSON.parse(models));
-    });
+    getModelsByCollection("text-to-image")
+      .then((models) => setModelOptions(JSON.parse(models)))
+      // A retired or renamed collection leaves the built-in model list in place.
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -244,15 +143,15 @@ export default function RenderForm(props: { token: string; modelName: string }) 
         ))}
       </Form.Dropdown>
       <Form.Separator />
-      {options.map((option, i) => {
-        return RenderFormInput({ option: option, modelName: modelName });
-      })}
+      {options.map((option) => (
+        <RenderFormInput key={`${modelName}-${option.name}`} option={option} modelName={modelName} />
+      ))}
     </Form>
   );
 }
 
 function RenderFormInput(props: { option: Option; modelName: string }) {
-  function toString(value: string | number | undefined) {
+  function toString(value: string | number | boolean | undefined) {
     if (value == null) {
       return "";
     } else {
@@ -265,7 +164,7 @@ function RenderFormInput(props: { option: Option; modelName: string }) {
   const optionDescription = props.option.values?.description;
 
   // Note, the ID is used to get the value of input field. Don't change the IDs!
-  return "allOf" in (optionValues || []) ? (
+  return optionValues?.allOf ? (
     <>
       <Form.Description
         key={`description-${props.option.name}-${props.modelName}`}
