@@ -1,16 +1,10 @@
-import { ActionPanel, Color, Detail } from "@raycast/api";
-import { Prediction, PredictionStatus } from "../types";
+import { ActionPanel, Detail } from "@raycast/api";
+import { Prediction } from "../types";
 import { usePrediction } from "../hooks/usePrediction";
+import { formatDate, formatDuration } from "../utils/format";
+import { STATUS_COLORS } from "../utils/status";
 import { outputItems, outputMarkdown } from "../utils/output";
 import { PredictionActions } from "./PredictionActions";
-
-const STATUS_COLORS: Record<PredictionStatus, Color> = {
-  starting: Color.Yellow,
-  processing: Color.Blue,
-  succeeded: Color.Green,
-  failed: Color.Red,
-  canceled: Color.SecondaryText,
-};
 
 type Props = {
   id: string;
@@ -36,8 +30,11 @@ export const PredictionDetail = ({ id, initial }: Props) => {
           <Detail.Metadata.TagList title="Status">
             <Detail.Metadata.TagList.Item text={prediction.status} color={STATUS_COLORS[prediction.status]} />
           </Detail.Metadata.TagList>
-          {prediction.metrics?.predict_time && (
-            <Detail.Metadata.Label title="Ran for" text={`${prediction.metrics.predict_time.toFixed(1)}s`} />
+          {formatDate(prediction.created_at) && (
+            <Detail.Metadata.Label title="Created" text={formatDate(prediction.created_at)} />
+          )}
+          {formatDuration(prediction.metrics?.predict_time) && (
+            <Detail.Metadata.Label title="Ran for" text={formatDuration(prediction.metrics?.predict_time)} />
           )}
           <Detail.Metadata.Link
             title="Prediction"

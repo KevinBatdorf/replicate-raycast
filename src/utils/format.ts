@@ -4,3 +4,7 @@ export const formatRuns = (count?: number) => {
   if (count >= 1_000) return `${Math.round(count / 1_000)}K runs`;
   return `${count} runs`;
 };
+
+export const formatDate = (value?: string) => (value ? new Date(value).toLocaleString() : undefined);
+
+export const formatDuration = (seconds?: number) => (seconds ? `${seconds.toFixed(1)}s` : undefined);

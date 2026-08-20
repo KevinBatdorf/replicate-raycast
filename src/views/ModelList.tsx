@@ -9,6 +9,16 @@ import { formatRuns } from "../utils/format";
 import { ModelDetailPane } from "./ModelDetailPane";
 import { ModelForm } from "./ModelForm";
 
+// Replicate publishes forty-odd collections; these are the ones worth reaching first.
+const PINNED_COLLECTIONS = [
+  "text-to-image",
+  "image-editing",
+  "language-models",
+  "text-to-video",
+  "upscale-images",
+  "audio-generation",
+];
+
 export const ModelList = () => {
   const [query, setQuery] = useState("");
   const [collection, setCollection] = useState("");
@@ -63,9 +73,17 @@ export const ModelList = () => {
       searchBarAccessory={
         <List.Dropdown tooltip="Collection" storeValue onChange={setCollection}>
           <List.Dropdown.Item title="Most Run" value="" />
-          {collections.map((entry) => (
-            <List.Dropdown.Item key={entry.slug} title={entry.name} value={entry.slug} />
-          ))}
+          {[...collections]
+            .sort((first, second) => {
+              const rank = (slug: string) => {
+                const index = PINNED_COLLECTIONS.indexOf(slug);
+                return index === -1 ? PINNED_COLLECTIONS.length : index;
+              };
+              return rank(first.slug) - rank(second.slug) || first.name.localeCompare(second.name);
+            })
+            .map((entry) => (
+              <List.Dropdown.Item key={entry.slug} title={entry.name} value={entry.slug} />
+            ))}
         </List.Dropdown>
       }
     >
