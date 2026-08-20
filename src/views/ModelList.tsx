@@ -33,6 +33,8 @@ export const ModelList = () => {
   const recentIds = new Set(recents.map(modelId));
   const shown = searching ? models : models.filter((model) => !recentIds.has(modelId(model)));
   const pinned = searching ? [] : recents;
+  // Without a selection to hold, resolving the highlighted model re-renders the list back to row one.
+  const visible = new Set([...pinned, ...shown].map(modelId));
 
   const item = (model: Model) => {
     const id = modelId(model);
@@ -67,6 +69,7 @@ export const ModelList = () => {
       isShowingDetail
       isLoading={isLoading}
       onSearchTextChange={setQuery}
+      selectedItemId={selected && visible.has(selected) ? selected : undefined}
       onSelectionChange={setSelected}
       throttle
       searchBarPlaceholder="Search Replicate models"
