@@ -65,6 +65,7 @@ export const RunModel = () => {
 
   const fields = modelFields(model);
   const options = models ?? [];
+  const loadingFields = Boolean(selected) && (loadingModel || loadingLastModel || !model);
   const missingSelected = selected && !options.some((option) => `${option.owner}/${option.name}` === selected);
 
   const handleSubmit = async (values: FormValues) => {
@@ -119,10 +120,10 @@ export const RunModel = () => {
 
   return (
     <Form
-      isLoading={loadingModels || loadingModel || isSubmitting}
+      isLoading={loadingModels || loadingFields || isSubmitting}
       actions={
         <ActionPanel>
-          <Action.SubmitForm icon={Icon.Play} title="Run Model" onSubmit={handleSubmit} />
+          {!loadingFields && <Action.SubmitForm icon={Icon.Play} title="Run Model" onSubmit={handleSubmit} />}
           {selected && (
             <Action.OpenInBrowser
               icon={Icon.Globe}
@@ -149,14 +150,18 @@ export const RunModel = () => {
         })}
       </Form.Dropdown>
       <Form.Separator />
-      {fields.map((field) => (
-        <ModelField
-          key={`${selected}-${field.name}`}
-          field={field}
-          defaultValue={selected ? lastInputs?.[selected]?.[field.name] : undefined}
-        />
-      ))}
-      {!fields.length && !loadingModel && (
+      {loadingFields ? (
+        <Form.Description title="Inputs" text={`Loading what ${selected} takes...`} />
+      ) : (
+        fields.map((field) => (
+          <ModelField
+            key={`${selected}-${field.name}`}
+            field={field}
+            defaultValue={selected ? lastInputs?.[selected]?.[field.name] : undefined}
+          />
+        ))
+      )}
+      {!loadingFields && !fields.length && (
         <Form.Description text={model ? "This model exposes no inputs." : "Pick a model to see its inputs."} />
       )}
     </Form>
