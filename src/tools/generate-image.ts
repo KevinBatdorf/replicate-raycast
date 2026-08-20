@@ -1,7 +1,7 @@
 import { Tool, environment, getPreferenceValues } from "@raycast/api";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { downloadFile, replicateFetch } from "../lib/replicate";
+import { createPrediction, downloadFile, replicateFetch } from "../lib/replicate";
 import { PredictionStatus } from "../types";
 import { isRunning } from "../utils/status";
 
@@ -72,20 +72,18 @@ export default async function tool(input: Input) {
   const [owner, name] = model.split("/");
   const [, version] = name.split(":");
 
-  const body = JSON.stringify({
-    ...(version ? { version } : {}),
+  // Sync mode still returns an unfinished prediction when the wait elapses.
+  let prediction = (await createPrediction({
+    owner,
+    name: name.split(":")[0],
+    version,
+    wait: WAIT_SECONDS,
     input: {
       prompt: input.prompt,
       ...(input.aspectRatio ? { aspect_ratio: input.aspectRatio } : {}),
       ...(input.count && input.count > 1 ? { num_outputs: input.count } : {}),
     },
-  });
-
-  let prediction = await replicateFetch<Prediction>(
-    version ? "/predictions" : `/models/${owner}/${name}/predictions`,
-    // Sync mode still returns an unfinished prediction when the wait elapses.
-    { method: "POST", headers: { Prefer: `wait=${WAIT_SECONDS}` }, body },
-  );
+  })) as Prediction;
 
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (isRunning(prediction)) {
