@@ -19,6 +19,7 @@ export type Prediction = {
   status: PredictionStatus;
   output?: unknown;
   error?: string | null;
+  logs?: string | null;
   created_at?: string;
   completed_at?: string;
   metrics?: {

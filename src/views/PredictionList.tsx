@@ -3,6 +3,7 @@ import { Prediction, PredictionStatus } from "../types";
 import { cancelPrediction, errorMessage } from "../lib/replicate";
 import { copyImage, saveImage } from "../utils/helpers";
 import { firstImage, outputItems, outputMarkdown } from "../utils/output";
+import { isRunning } from "../utils/status";
 
 const STATUS_COLORS: Record<PredictionStatus, Color> = {
   starting: Color.Yellow,
@@ -76,7 +77,7 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
         const image = firstImage(items);
         const prompt = prediction.input?.prompt?.trim();
         const text = items.find((item) => item.kind === "text");
-        const running = prediction.status === "starting" || prediction.status === "processing";
+        const running = isRunning(prediction);
 
         return (
           <List.Item

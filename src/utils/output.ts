@@ -1,6 +1,7 @@
 import isImage from "is-image";
 import { extname } from "node:path";
 import { Prediction } from "../types";
+import { isRunning } from "./status";
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".m4v"];
 const AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac"];
@@ -45,16 +46,37 @@ export const firstImage = (items: OutputItem[]) => {
   return image && "url" in image ? image.url : undefined;
 };
 
+const statusLine = (prediction: Prediction) => {
+  switch (prediction.status) {
+    case "starting":
+      return "Waiting for the model to start...";
+    case "processing":
+      return "Running...";
+    case "canceled":
+      return "This prediction was cancelled.";
+    case "failed":
+      return prediction.error ?? "This prediction failed.";
+    default:
+      return "Replicate removes prediction outputs about an hour after they run, so this one is empty.";
+  }
+};
+
+const LOG_LINES = 20;
+
+const logTail = (logs?: string | null) => {
+  // Progress bars overwrite themselves with carriage returns rather than newlines.
+  const lines = (logs ?? "").split(/[\r\n]+/).filter((line) => line.trim());
+  if (!lines.length) return undefined;
+  return `\`\`\`\n${lines.slice(-LOG_LINES).join("\n")}\n\`\`\``;
+};
+
 export const outputMarkdown = (prediction: Prediction, items: OutputItem[]) => {
   const prompt = prediction.input?.prompt?.trim();
   const heading = prompt ? `### ${prompt}\n\n` : "";
+  const logs = isRunning(prediction) || prediction.status === "failed" ? logTail(prediction.logs) : undefined;
 
   if (!items.length) {
-    const reason =
-      prediction.status === "succeeded"
-        ? "This prediction has no output any more. Replicate removes outputs about an hour after a prediction runs."
-        : (prediction.error ?? `This prediction ${prediction.status}.`);
-    return `${heading}${reason}`;
+    return [`${heading}${statusLine(prediction)}`, logs].filter(Boolean).join("\n\n");
   }
 
   const body = items
@@ -65,5 +87,5 @@ export const outputMarkdown = (prediction: Prediction, items: OutputItem[]) => {
     })
     .join("\n\n");
 
-  return `${heading}${body}`;
+  return [`${heading}${body}`, logs].filter(Boolean).join("\n\n");
 };

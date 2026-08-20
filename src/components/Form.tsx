@@ -4,6 +4,8 @@ import { models, Model, OptionSchema } from "../models";
 import crypto from "crypto";
 import { copyImage, saveImage, showAuthError } from "../utils/helpers";
 import { errorMessage, isAuthError, replicateFetch } from "../lib/replicate";
+import { PredictionStatus } from "../types";
+import { isRunning } from "../utils/status";
 
 type FormValue = string | number | boolean | Date | string[];
 type FormValues = Record<string, FormValue>;
@@ -16,7 +18,7 @@ type Option = {
 
 type Prediction = {
   id: string;
-  status: string;
+  status: PredictionStatus;
   error?: string;
   created_at: string;
   completed_at: string;
@@ -30,7 +32,6 @@ interface ModelResult {
 
 const generateId = (name: string) => `${crypto.randomUUID()}-${name}`;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const TERMINAL_STATUSES = ["succeeded", "failed", "canceled"];
 
 export default function RenderForm(props: { modelName: string }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +109,7 @@ export default function RenderForm(props: { modelName: string }) {
     try {
       let prediction = await handler(values);
 
-      while (!TERMINAL_STATUSES.includes(prediction.status)) {
+      while (isRunning(prediction)) {
         await sleep(1000);
         prediction = await replicateFetch<Prediction>(`/predictions/${prediction.id}`);
       }

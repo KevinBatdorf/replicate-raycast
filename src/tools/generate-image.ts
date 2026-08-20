@@ -2,6 +2,8 @@ import { Tool, environment, getPreferenceValues } from "@raycast/api";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { downloadFile, replicateFetch } from "../lib/replicate";
+import { PredictionStatus } from "../types";
+import { isRunning } from "../utils/status";
 
 type Input = {
   /**
@@ -26,7 +28,7 @@ type Input = {
 
 type Prediction = {
   id: string;
-  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  status: PredictionStatus;
   error?: string;
   output?: string | string[] | null;
 };
@@ -34,8 +36,6 @@ type Prediction = {
 const WAIT_SECONDS = 60;
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 180_000;
-const TERMINAL_STATUSES = ["succeeded", "failed", "canceled"];
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const resolveModel = (model?: string) => {
@@ -88,7 +88,7 @@ export default async function tool(input: Input) {
   );
 
   const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (!TERMINAL_STATUSES.includes(prediction.status)) {
+  while (isRunning(prediction)) {
     if (Date.now() > deadline) {
       throw new Error(
         `The prediction is still running. Check it at https://replicate.com/p/${prediction.id} and try a faster model.`,
