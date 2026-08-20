@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Action, ActionPanel, Color, Icon, List, openCommandPreferences } from "@raycast/api";
 import { Prediction } from "../types";
-import { firstImage, outputItems } from "../utils/output";
+import { firstImage, outputItems, previewMarkdown } from "../utils/output";
 import { STATUS_COLORS } from "../utils/status";
 import { PredictionActions } from "./PredictionActions";
 import { PredictionDetail } from "./PredictionDetail";
@@ -36,6 +36,7 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
 
   return (
     <List
+      isShowingDetail
       isLoading={isLoading}
       pagination={pagination}
       selectedItemId={selected ?? undefined}
@@ -64,6 +65,7 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
             title={prompt || prediction.model || prediction.id}
             keywords={[prediction.model ?? "", prediction.status]}
             accessories={[{ tag: { value: prediction.status, color: STATUS_COLORS[prediction.status] } }]}
+            detail={<List.Item.Detail markdown={previewMarkdown(prediction, items)} />}
             actions={
               <ActionPanel>
                 <Action.Push

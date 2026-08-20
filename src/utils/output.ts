@@ -60,6 +60,11 @@ export const firstImage = (items: OutputItem[]) => files(items).find((item) => i
 
 export const firstText = (items: OutputItem[]) => items.find((item) => item.kind === "text");
 
+export const previewMarkdown = (prediction: Prediction, items: OutputItem[]) => {
+  const image = firstImage(items);
+  return image ? `![](${image})` : statusLine(prediction);
+};
+
 const statusLine = (prediction: Prediction) => {
   switch (prediction.status) {
     case "starting":
@@ -86,11 +91,10 @@ const logTail = (logs?: string | null) => {
 
 export const outputMarkdown = (prediction: Prediction, items: OutputItem[]) => {
   const prompt = prediction.input?.prompt?.trim();
-  const heading = prompt ? `### ${prompt}\n\n` : "";
   const logs = isRunning(prediction) || prediction.status === "failed" ? logTail(prediction.logs) : undefined;
 
   if (!items.length) {
-    return [`${heading}${statusLine(prediction)}`, logs].filter(Boolean).join("\n\n");
+    return [statusLine(prediction), logs].filter(Boolean).join("\n\n");
   }
 
   const body = items
@@ -101,5 +105,5 @@ export const outputMarkdown = (prediction: Prediction, items: OutputItem[]) => {
     })
     .join("\n\n");
 
-  return [`${heading}${body}`, logs].filter(Boolean).join("\n\n");
+  return [body, logs].filter(Boolean).join("\n\n");
 };

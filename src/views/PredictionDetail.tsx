@@ -26,6 +26,9 @@ export const PredictionDetail = ({ id, initial }: Props) => {
       markdown={outputMarkdown(prediction, items)}
       metadata={
         <Detail.Metadata>
+          {prediction.input?.prompt?.trim() && (
+            <Detail.Metadata.Label title="Prompt" text={prediction.input.prompt.trim()} />
+          )}
           {prediction.model && <Detail.Metadata.Label title="Model" text={prediction.model} />}
           <Detail.Metadata.TagList title="Status">
             <Detail.Metadata.TagList.Item text={prediction.status} color={STATUS_COLORS[prediction.status]} />
