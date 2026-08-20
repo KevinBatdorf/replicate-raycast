@@ -1,9 +1,7 @@
-import { Action, ActionPanel, Color, Icon, List, openCommandPreferences, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Color, Icon, List, openCommandPreferences } from "@raycast/api";
 import { Prediction, PredictionStatus } from "../types";
-import { cancelPrediction, errorMessage } from "../lib/replicate";
-import { copyImage, saveImage } from "../utils/helpers";
 import { firstImage, outputItems, outputMarkdown } from "../utils/output";
-import { isRunning } from "../utils/status";
+import { PredictionActions } from "./PredictionActions";
 
 const STATUS_COLORS: Record<PredictionStatus, Color> = {
   starting: Color.Yellow,
@@ -46,20 +44,6 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
     );
   }
 
-  const cancel = async (prediction: Prediction) => {
-    const toast = await showToast(Toast.Style.Animated, "Cancelling...");
-    try {
-      await cancelPrediction(prediction.id);
-      toast.style = Toast.Style.Success;
-      toast.title = "Prediction Cancelled";
-      revalidate();
-    } catch (error) {
-      toast.style = Toast.Style.Failure;
-      toast.title = "Could Not Cancel the Prediction";
-      toast.message = errorMessage(error);
-    }
-  };
-
   return (
     <List isShowingDetail isLoading={isLoading} pagination={pagination} searchBarPlaceholder="Search your prompts">
       <List.EmptyView
@@ -76,8 +60,6 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
         const items = outputItems(prediction.output);
         const image = firstImage(items);
         const prompt = prediction.input?.prompt?.trim();
-        const text = items.find((item) => item.kind === "text");
-        const running = isRunning(prediction);
 
         return (
           <List.Item
@@ -115,24 +97,7 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
             }
             actions={
               <ActionPanel>
-                {image && <Action icon={Icon.SaveDocument} title="Save Image" onAction={() => saveImage(image)} />}
-                {image && <Action icon={Icon.CopyClipboard} title="Copy Image" onAction={() => copyImage(image)} />}
-                {text && <Action.CopyToClipboard icon={Icon.Text} title="Copy Output" content={text.text} />}
-                <Action.OpenInBrowser
-                  icon={Icon.Globe}
-                  title="Open on Replicate"
-                  url={`https://replicate.com/p/${prediction.id}`}
-                />
-                {prompt && <Action.CopyToClipboard icon={Icon.Text} title="Copy Prompt" content={prompt} />}
-                {running && (
-                  <Action
-                    icon={Icon.Stop}
-                    style={Action.Style.Destructive}
-                    title="Cancel Prediction"
-                    onAction={() => cancel(prediction)}
-                  />
-                )}
-                <Action icon={Icon.ArrowClockwise} title="Refresh" onAction={revalidate} />
+                <PredictionActions prediction={prediction} items={items} revalidate={revalidate} />
               </ActionPanel>
             }
           />

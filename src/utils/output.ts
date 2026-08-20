@@ -8,6 +8,17 @@ const AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac"];
 
 export type OutputItem = { kind: "image" | "video" | "audio" | "file"; url: string } | { kind: "text"; text: string };
 
+export type FileOutput = Extract<OutputItem, { url: string }>;
+
+const KIND_LABELS: Record<FileOutput["kind"], string> = {
+  image: "Image",
+  video: "Video",
+  audio: "Audio",
+  file: "File",
+};
+
+export const kindLabel = (kind: FileOutput["kind"]) => KIND_LABELS[kind];
+
 const asUrl = (value: string) => {
   try {
     return new URL(value);
@@ -41,10 +52,13 @@ export const outputItems = (output: Prediction["output"]): OutputItem[] => {
   return values.map(classify).filter((item): item is OutputItem => Boolean(item));
 };
 
-export const firstImage = (items: OutputItem[]) => {
-  const image = items.find((item) => item.kind === "image");
-  return image && "url" in image ? image.url : undefined;
-};
+export const files = (items: OutputItem[]) => items.filter((item): item is FileOutput => "url" in item);
+
+export const firstFile = (items: OutputItem[]) => files(items)[0];
+
+export const firstImage = (items: OutputItem[]) => files(items).find((item) => item.kind === "image")?.url;
+
+export const firstText = (items: OutputItem[]) => items.find((item) => item.kind === "text");
 
 const statusLine = (prediction: Prediction) => {
   switch (prediction.status) {

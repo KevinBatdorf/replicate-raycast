@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Form, ActionPanel, Action, open, showToast, Toast, confirmAlert } from "@raycast/api";
+import { Form, ActionPanel, Action, showToast, Toast, useNavigation } from "@raycast/api";
 import { models, Model, OptionSchema } from "../models";
 import crypto from "crypto";
-import { copyImage, saveImage, showAuthError } from "../utils/helpers";
+import { showAuthError } from "../utils/helpers";
 import { errorMessage, isAuthError, replicateFetch } from "../lib/replicate";
-import { PredictionStatus } from "../types";
-import { isRunning } from "../utils/status";
+import { Prediction } from "../types";
+import { PredictionDetail } from "../views/PredictionDetail";
 
 type FormValue = string | number | boolean | Date | string[];
 type FormValues = Record<string, FormValue>;
@@ -16,24 +16,14 @@ type Option = {
   enums: string[];
 };
 
-type Prediction = {
-  id: string;
-  status: PredictionStatus;
-  error?: string;
-  created_at: string;
-  completed_at: string;
-  input: { prompt?: string } & Record<string, unknown>;
-  output: string[];
-};
-
 interface ModelResult {
   models: Model[];
 }
 
 const generateId = (name: string) => `${crypto.randomUUID()}-${name}`;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default function RenderForm(props: { modelName: string }) {
+  const { push } = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<Option[]>([]);
   const [modelName, setModelName] = useState(props.modelName);
@@ -61,8 +51,6 @@ export default function RenderForm(props: { modelName: string }) {
         }
       }
     }
-
-    console.log("Submission: ", filteredValues);
 
     return await replicateFetch<Prediction>("/predictions", {
       method: "POST",
@@ -107,58 +95,8 @@ export default function RenderForm(props: { modelName: string }) {
   const handleSubmit = async (values: FormValues) => {
     setIsLoading(true);
     try {
-      let prediction = await handler(values);
-
-      while (isRunning(prediction)) {
-        await sleep(1000);
-        prediction = await replicateFetch<Prediction>(`/predictions/${prediction.id}`);
-      }
-
-      if (prediction.status !== "succeeded") {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Prediction Failed",
-          message: prediction.error ?? `The prediction ${prediction.status}`,
-          primaryAction: {
-            title: "View Prediction on Replicate",
-            onAction: () => open(`https://replicate.com/p/${prediction.id}`),
-          },
-        });
-        return;
-      }
-
-      const start = new Date(prediction.created_at);
-      const end = new Date(prediction.completed_at);
-      const differenceInSeconds = (end.getTime() - start.getTime()) / 1000;
-
-      await confirmAlert({
-        title: "Prediction Complete",
-        message: `Your prediction for '${prediction.input.prompt}' finished in ${differenceInSeconds} seconds. Copy the image to your clipboard?`,
-        icon: {
-          source: prediction.output[0],
-        },
-        primaryAction: {
-          title: "Copy to Clipboard",
-          onAction: () => {
-            copyImage(prediction.output[0]);
-          },
-        },
-        dismissAction: {
-          title: "Close",
-        },
-      });
-
-      await showToast({
-        style: Toast.Style.Success,
-        title: "Prediction Success",
-        message: prediction.output[0],
-        primaryAction: {
-          title: "Save Output as File",
-          onAction: () => {
-            saveImage(prediction.output[0]);
-          },
-        },
-      });
+      const prediction = await handler(values);
+      push(<PredictionDetail id={prediction.id} initial={prediction} />);
     } catch (error) {
       if (isAuthError(error)) {
         await showAuthError(undefined, errorMessage(error));

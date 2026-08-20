@@ -9,30 +9,30 @@ const outputFileName = (url: string) => {
   return `${name}${extname(segments.at(-1) ?? "") || ".png"}`;
 };
 
-export const copyImage = async (url: string) => {
-  const toast = await showToast(Toast.Style.Animated, "Copying image...");
+export const copyOutputFile = async (url: string) => {
+  const toast = await showToast(Toast.Style.Animated, "Copying...");
   try {
     const file = await downloadFile(url, join(environment.supportPath, outputFileName(url)));
     await Clipboard.copy({ file });
     toast.hide();
-    await showHUD("✅ Image copied to clipboard!");
+    await showHUD("✅ Copied to clipboard!");
   } catch (error) {
     toast.style = Toast.Style.Failure;
-    toast.title = "Could Not Copy the Image";
+    toast.title = "Could Not Copy the File";
     toast.message = errorMessage(error);
   }
 };
 
-export const saveImage = async (url: string) => {
+export const saveOutputFile = async (url: string) => {
   const destination = join(homedir(), "Downloads", outputFileName(url));
-  const toast = await showToast(Toast.Style.Animated, "Saving image...");
+  const toast = await showToast(Toast.Style.Animated, "Saving...");
   try {
     await downloadFile(url, destination);
     toast.hide();
-    await showHUD(`✅ Image saved to ${destination}`);
+    await showHUD(`✅ Saved to ${destination}`);
   } catch (error) {
     toast.style = Toast.Style.Failure;
-    toast.title = "Could Not Save the Image";
+    toast.title = "Could Not Save the File";
     toast.message = errorMessage(error);
   }
 };
