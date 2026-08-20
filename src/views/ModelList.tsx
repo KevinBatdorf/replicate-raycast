@@ -27,6 +27,7 @@ export const ModelList = () => {
   const item = (model: Model) => {
     const id = modelId(model);
     const runs = formatRuns(model.run_count);
+    const example = selected === id ? full?.default_example?.input?.prompt?.trim() : undefined;
     return (
       <List.Item
         key={id}
@@ -44,6 +45,7 @@ export const ModelList = () => {
             />
             <Action.OpenInBrowser icon={Icon.Globe} title="Open on Replicate" url={`https://replicate.com/${id}`} />
             <Action.CopyToClipboard icon={Icon.Text} title="Copy Model Name" content={id} />
+            {example && <Action.CopyToClipboard icon={Icon.Paragraph} title="Copy Example Prompt" content={example} />}
           </ActionPanel>
         }
       />
