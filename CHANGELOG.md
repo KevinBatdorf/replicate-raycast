@@ -11,6 +11,7 @@
 - Fixed predictions with a single image being indexed under a garbled id, which put junk rows in the prompt search
 - Fixed the model form hanging forever on a prediction cancelled from replicate.com
 - Failed requests now surface Replicate's own error message instead of "Something went wrong"
+- Runs on Raycast for Windows as well as macOS, now that the AppleScript and Finder dependencies are gone
 
 ## [Updated Grid component and Replicate name] - 2022-11-05
 
