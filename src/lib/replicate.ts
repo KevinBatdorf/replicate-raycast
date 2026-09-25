@@ -1,5 +1,15 @@
 import { getPreferenceValues } from "@raycast/api";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import { basename } from "node:path";
+import {
+  CollectionResponse,
+  CollectionsResponse,
+  Model,
+  ModelsResponse,
+  Prediction,
+  ReplicateFile,
+  SearchResponse,
+} from "../types";
 
 const API_BASE = "https://api.replicate.com/v1";
 
@@ -56,3 +66,74 @@ export const downloadFile = async (url: string, destination: string) => {
 
 export const cancelPrediction = (id: string) =>
   replicateFetch<unknown>(`/predictions/${id}/cancel`, { method: "POST" });
+
+const MODEL_PAGES = 3;
+
+// The API only sorts models by creation date, so popularity has to be sorted here.
+export const listModels = async () => {
+  const models: Model[] = [];
+  let path: string | undefined = "/models";
+
+  for (let page = 0; page < MODEL_PAGES && path; page += 1) {
+    const response: ModelsResponse = await replicateFetch<ModelsResponse>(path);
+    models.push(...response.results);
+    path = response.next ?? undefined;
+  }
+
+  return models.sort(byRunCount);
+};
+
+const byRunCount = (first: Model, second: Model) => (second.run_count ?? 0) - (first.run_count ?? 0);
+
+export const listCollections = async () => (await replicateFetch<CollectionsResponse>("/collections")).results;
+
+export const collectionModels = async (slug: string) => {
+  const collection = await replicateFetch<CollectionResponse>(`/collections/${slug}`);
+  return (collection.models ?? []).sort(byRunCount);
+};
+
+export const searchModels = async (query: string) => {
+  const response = await replicateFetch<SearchResponse>(`/search?query=${encodeURIComponent(query)}&limit=20`);
+  return (response.models ?? []).map((result) => result.model);
+};
+
+export const getModel = (owner: string, name: string) => replicateFetch<Model>(`/models/${owner}/${name}`);
+
+export const createPrediction = ({
+  owner,
+  name,
+  version,
+  input,
+  wait,
+}: {
+  owner: string;
+  name: string;
+  version?: string;
+  input: Record<string, unknown>;
+  wait?: number;
+}) =>
+  // Official models have no version to pin and only run on their own endpoint.
+  replicateFetch<Prediction>(version ? "/predictions" : `/models/${owner}/${name}/predictions`, {
+    method: "POST",
+    headers: wait ? { Prefer: `wait=${wait}` } : undefined,
+    body: JSON.stringify({ ...(version ? { version } : {}), input }),
+  });
+
+export const uploadFile = async (path: string) => {
+  const { token } = getPreferenceValues<Preferences>();
+  const body = new FormData();
+  body.append("content", new Blob([await readFile(path)]), basename(path));
+
+  const response = await fetch(`${API_BASE}/files`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+  if (!response.ok) {
+    throw new ReplicateError(response.status, `Uploading ${basename(path)} failed with ${response.status}.`);
+  }
+
+  const file = (await response.json()) as ReplicateFile;
+  if (!file.urls?.get) throw new ReplicateError(response.status, "The upload returned no file URL.");
+  return file.urls.get;
+};
