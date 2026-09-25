@@ -2,6 +2,7 @@ import { getPreferenceValues } from "@raycast/api";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { CollectionResponse, CollectionsResponse, Model, Prediction, ReplicateFile, SearchResponse } from "../types";
+import { isRunning } from "../utils/status";
 
 const API_BASE = "https://api.replicate.com/v1";
 
@@ -118,10 +119,10 @@ export const createPrediction = ({
   });
 };
 
-export const uploadFile = async (path: string) => {
+export const uploadBytes = async (bytes: Buffer, filename: string, type?: string) => {
   const { token } = getPreferenceValues<Preferences>();
   const body = new FormData();
-  body.append("content", new Blob([await readFile(path)]), basename(path));
+  body.append("content", new Blob([bytes], type ? { type } : undefined), filename);
 
   const response = await fetch(`${API_BASE}/files`, {
     method: "POST",
@@ -129,10 +130,31 @@ export const uploadFile = async (path: string) => {
     body,
   });
   if (!response.ok) {
-    throw new ReplicateError(response.status, `Uploading ${basename(path)} failed with ${response.status}.`);
+    throw new ReplicateError(response.status, `Uploading ${filename} failed with ${response.status}.`);
   }
 
   const file = (await response.json()) as ReplicateFile;
   if (!file.urls?.get) throw new ReplicateError(response.status, "The upload returned no file URL.");
   return file.urls.get;
+};
+
+export const uploadFile = async (path: string) => uploadBytes(await readFile(path), basename(path));
+
+const POLL_INTERVAL_MS = 2000;
+const POLL_TIMEOUT_MS = 180_000;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const waitForPrediction = async (initial: Prediction) => {
+  let prediction = initial;
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (isRunning(prediction)) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `The prediction is still running. Check it at https://replicate.com/p/${prediction.id} and try a faster model.`,
+      );
+    }
+    await sleep(POLL_INTERVAL_MS);
+    prediction = await replicateFetch<Prediction>(`/predictions/${prediction.id}`);
+  }
+  return prediction;
 };

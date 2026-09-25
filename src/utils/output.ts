@@ -19,6 +19,8 @@ const KIND_LABELS: Record<FileOutput["kind"], string> = {
 
 export const kindLabel = (kind: FileOutput["kind"]) => KIND_LABELS[kind];
 
+export const altText = (prompt: string) => prompt.replace(/\s+/g, " ").replace(/[[\]]/g, "").trim().slice(0, 80);
+
 const asUrl = (value: string) => {
   try {
     return new URL(value);

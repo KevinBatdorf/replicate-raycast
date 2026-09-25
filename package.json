@@ -32,6 +32,7 @@
     }
   ],
   "ai": {
+    "modelProvider": "provider",
     "instructions": "Show every generated image by repeating the `markdown` field from the generate-image result verbatim in your reply; an image the user cannot see counts as a failed generation. Keep the `images[].file` paths out of the reply unless the user asks where the file went. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
     "evals": [
       {
@@ -145,6 +146,15 @@
       "title": "AI Tool",
       "label": "Confirm before generating",
       "description": "Ask for confirmation before the AI tool runs a model and bills your Replicate account.",
+      "default": true,
+      "required": false
+    },
+    {
+      "name": "popularModels",
+      "type": "checkbox",
+      "title": "AI Models",
+      "label": "Offer popular models",
+      "description": "List Replicate's most-run official image models in Raycast AI's model picker, refreshed daily. Models you add or chat with stay either way.",
       "default": true,
       "required": false
     }

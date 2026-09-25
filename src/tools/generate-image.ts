@@ -1,9 +1,8 @@
 import { Tool, environment, getPreferenceValues } from "@raycast/api";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { createPrediction, downloadFile, replicateFetch } from "../lib/replicate";
-import { PredictionStatus } from "../types";
-import { isRunning } from "../utils/status";
+import { createPrediction, downloadFile, waitForPrediction } from "../lib/replicate";
+import { altText } from "../utils/output";
 
 type Input = {
   /**
@@ -26,17 +25,7 @@ type Input = {
   count?: number;
 };
 
-type Prediction = {
-  id: string;
-  status: PredictionStatus;
-  error?: string;
-  output?: string | string[] | null;
-};
-
 const WAIT_SECONDS = 60;
-const POLL_INTERVAL_MS = 2000;
-const POLL_TIMEOUT_MS = 180_000;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const resolveModel = (model?: string) => {
   const { defaultModel } = getPreferenceValues<Preferences>();
@@ -46,8 +35,6 @@ const resolveModel = (model?: string) => {
   }
   return name;
 };
-
-const altText = (prompt: string) => prompt.replace(/\s+/g, " ").replace(/[[\]]/g, "").trim().slice(0, 80);
 
 export const confirmation: Tool.Confirmation<Input> = async (input) => {
   const { confirmGenerations } = getPreferenceValues<Preferences>();
@@ -73,28 +60,19 @@ export default async function tool(input: Input) {
   const [, version] = name.split(":");
 
   // Sync mode still returns an unfinished prediction when the wait elapses.
-  let prediction = (await createPrediction({
-    owner,
-    name: name.split(":")[0],
-    version,
-    wait: WAIT_SECONDS,
-    input: {
-      prompt: input.prompt,
-      ...(input.aspectRatio ? { aspect_ratio: input.aspectRatio } : {}),
-      ...(input.count && input.count > 1 ? { num_outputs: input.count } : {}),
-    },
-  })) as Prediction;
-
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (isRunning(prediction)) {
-    if (Date.now() > deadline) {
-      throw new Error(
-        `The prediction is still running. Check it at https://replicate.com/p/${prediction.id} and try a faster model.`,
-      );
-    }
-    await sleep(POLL_INTERVAL_MS);
-    prediction = await replicateFetch<Prediction>(`/predictions/${prediction.id}`);
-  }
+  const prediction = await waitForPrediction(
+    await createPrediction({
+      owner,
+      name: name.split(":")[0],
+      version,
+      wait: WAIT_SECONDS,
+      input: {
+        prompt: input.prompt,
+        ...(input.aspectRatio ? { aspect_ratio: input.aspectRatio } : {}),
+        ...(input.count && input.count > 1 ? { num_outputs: input.count } : {}),
+      },
+    }),
+  );
 
   if (prediction.status !== "succeeded") {
     throw new Error(prediction.error ?? `The prediction ${prediction.status}.`);

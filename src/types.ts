@@ -14,6 +14,7 @@ export type Prediction = {
   urls?: {
     get?: string;
     cancel?: string;
+    stream?: string;
   };
   input?: { prompt?: string } & Record<string, unknown>;
   status: PredictionStatus;
@@ -34,6 +35,7 @@ export type OptionSchema = {
   default?: string | number | boolean;
   description?: string;
   enum?: string[];
+  items?: OptionSchema;
   allOf?: { $ref: string }[];
   minimum?: number;
   maximum?: number;
