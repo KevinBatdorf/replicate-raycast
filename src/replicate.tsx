@@ -1,4 +1,5 @@
 import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { ManageAIModels } from "./views/ManageAIModels";
 import { ModelList } from "./views/ModelList";
 import ViewPredictions from "./viewPredictions";
 
@@ -21,6 +22,16 @@ export default function Command() {
           actions={
             <ActionPanel>
               <Action.Push title="View Predictions" target={<ViewPredictions />} />
+            </ActionPanel>
+          }
+        />
+        <List.Item
+          icon={{ source: "replicate.png" }}
+          title="Manage AI Models"
+          subtitle="Choose what Raycast AI offers"
+          actions={
+            <ActionPanel>
+              <Action.Push title="Manage AI Models" target={<ManageAIModels />} />
             </ActionPanel>
           }
         />

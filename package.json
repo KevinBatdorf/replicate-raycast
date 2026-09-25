@@ -22,6 +22,13 @@
       "subtitle": "Run models in the cloud",
       "description": "Run models in the cloud",
       "mode": "view"
+    },
+    {
+      "name": "manage-ai-models",
+      "title": "Manage AI Models",
+      "subtitle": "Replicate",
+      "description": "Choose which Replicate models appear in Raycast AI's model picker.",
+      "mode": "view"
     }
   ],
   "tools": [
