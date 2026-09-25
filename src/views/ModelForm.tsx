@@ -87,6 +87,7 @@ export const ModelForm = ({ model: listed, onOpen }: Props) => {
         owner: model.owner,
         name: model.name,
         version: model.latest_version?.id,
+        official: model.is_official,
         input,
       });
 

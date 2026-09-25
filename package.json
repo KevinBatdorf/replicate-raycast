@@ -32,7 +32,7 @@
     }
   ],
   "ai": {
-    "instructions": "Show every generated image by repeating the `markdown` field from the generate-image result verbatim in your reply; an image the user cannot see counts as a failed generation. Keep the `images[].file` paths out of the reply unless the user asks where the file went. Only pass `model` when the user names one, and never invent a model name \u2014 Replicate models are written as owner/name.",
+    "instructions": "Show every generated image by repeating the `markdown` field from the generate-image result verbatim in your reply; an image the user cannot see counts as a failed generation. Keep the `images[].file` paths out of the reply unless the user asks where the file went. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
@@ -150,7 +150,7 @@
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.104.25",
+    "@raycast/api": "^2.5.2",
     "@raycast/utils": "^2.3.0",
     "is-image": "^3.1.0"
   },

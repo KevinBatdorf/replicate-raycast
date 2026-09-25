@@ -7,7 +7,7 @@ export const useModels = (query: string, collection?: string) =>
     (search: string, slug?: string) => {
       if (search.trim()) return searchModels(search.trim());
       if (slug) return cached(`collection:${slug}`, DAY_MS, () => collectionModels(slug));
-      return cached("models:most-run", DAY_MS, listModels);
+      return cached("models:most-run-collections", DAY_MS, listModels);
     },
     [query, collection],
   );

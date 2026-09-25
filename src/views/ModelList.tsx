@@ -1,23 +1,14 @@
 import { useState } from "react";
 import { Action, ActionPanel, Icon, List } from "@raycast/api";
+import { MAIN_COLLECTIONS, modelId } from "../lib/replicate";
 import { Model } from "../types";
 import { useCollections } from "../hooks/useCollections";
 import { useModel } from "../hooks/useModel";
 import { useModels } from "../hooks/useModels";
-import { modelId, useRecentModels } from "../hooks/useRecentModels";
+import { useRecentModels } from "../hooks/useRecentModels";
 import { formatRuns } from "../utils/format";
 import { ModelDetailPane } from "./ModelDetailPane";
 import { ModelForm } from "./ModelForm";
-
-// Replicate publishes forty-odd collections; these are the ones worth reaching first.
-const PINNED_COLLECTIONS = [
-  "text-to-image",
-  "image-editing",
-  "language-models",
-  "text-to-video",
-  "upscale-images",
-  "audio-generation",
-];
 
 export const ModelList = () => {
   const [query, setQuery] = useState("");
@@ -79,8 +70,8 @@ export const ModelList = () => {
           {[...collections]
             .sort((first, second) => {
               const rank = (slug: string) => {
-                const index = PINNED_COLLECTIONS.indexOf(slug);
-                return index === -1 ? PINNED_COLLECTIONS.length : index;
+                const index = MAIN_COLLECTIONS.indexOf(slug);
+                return index === -1 ? MAIN_COLLECTIONS.length : index;
               };
               return rank(first.slug) - rank(second.slug) || first.name.localeCompare(second.name);
             })

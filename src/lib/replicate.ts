@@ -1,15 +1,7 @@
 import { getPreferenceValues } from "@raycast/api";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
-import {
-  CollectionResponse,
-  CollectionsResponse,
-  Model,
-  ModelsResponse,
-  Prediction,
-  ReplicateFile,
-  SearchResponse,
-} from "../types";
+import { CollectionResponse, CollectionsResponse, Model, Prediction, ReplicateFile, SearchResponse } from "../types";
 
 const API_BASE = "https://api.replicate.com/v1";
 
@@ -67,20 +59,23 @@ export const downloadFile = async (url: string, destination: string) => {
 export const cancelPrediction = (id: string) =>
   replicateFetch<unknown>(`/predictions/${id}/cancel`, { method: "POST" });
 
-const MODEL_PAGES = 3;
+// Replicate publishes forty-odd collections; these are the ones worth reaching first.
+export const MAIN_COLLECTIONS = [
+  "text-to-image",
+  "image-editing",
+  "language-models",
+  "text-to-video",
+  "upscale-images",
+  "audio-generation",
+];
 
-// The API only sorts models by creation date, so popularity has to be sorted here.
+export const modelId = (model: Pick<Model, "owner" | "name">) => `${model.owner}/${model.name}`;
+
+// The API only sorts models by date, so the most-run list is pooled from the main collections.
 export const listModels = async () => {
-  const models: Model[] = [];
-  let path: string | undefined = "/models";
-
-  for (let page = 0; page < MODEL_PAGES && path; page += 1) {
-    const response: ModelsResponse = await replicateFetch<ModelsResponse>(path);
-    models.push(...response.results);
-    path = response.next ?? undefined;
-  }
-
-  return models.sort(byRunCount);
+  const lists = await Promise.all(MAIN_COLLECTIONS.map((slug) => collectionModels(slug).catch(() => [])));
+  const unique = new Map(lists.flat().map((model) => [modelId(model), model]));
+  return [...unique.values()].sort(byRunCount);
 };
 
 const byRunCount = (first: Model, second: Model) => (second.run_count ?? 0) - (first.run_count ?? 0);
@@ -103,21 +98,25 @@ export const createPrediction = ({
   owner,
   name,
   version,
+  official,
   input,
   wait,
 }: {
   owner: string;
   name: string;
   version?: string;
+  official?: boolean;
   input: Record<string, unknown>;
   wait?: number;
-}) =>
-  // Official models have no version to pin and only run on their own endpoint.
-  replicateFetch<Prediction>(version ? "/predictions" : `/models/${owner}/${name}/predictions`, {
+}) => {
+  // Official models can still list a latest version, but they run and bill on their own endpoint.
+  const pinned = version && !official;
+  return replicateFetch<Prediction>(pinned ? "/predictions" : `/models/${owner}/${name}/predictions`, {
     method: "POST",
     headers: wait ? { Prefer: `wait=${wait}` } : undefined,
-    body: JSON.stringify({ ...(version ? { version } : {}), input }),
+    body: JSON.stringify({ ...(pinned ? { version } : {}), input }),
   });
+};
 
 export const uploadFile = async (path: string) => {
   const { token } = getPreferenceValues<Preferences>();
