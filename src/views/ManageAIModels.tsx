@@ -118,7 +118,7 @@ export const ManageAIModels = () => {
   return (
     <List
       isLoading={isLoading || loadingPopular || searching}
-      navigationTitle="Manage AI Models"
+      navigationTitle="Raycast AI Models"
       searchBarPlaceholder="Search Replicate models"
       onSearchTextChange={setQuery}
       throttle
@@ -137,7 +137,7 @@ export const ManageAIModels = () => {
             : "Search Replicate's models and add the ones you want in the model picker."
         }
       />
-      <List.Section title="In Raycast AI">
+      <List.Section>
         {[...kept]
           .sort((first, second) => activity(second) - activity(first))
           .filter((model) => matches(model.id))

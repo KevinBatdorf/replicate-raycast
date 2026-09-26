@@ -27,11 +27,11 @@ export default function Command() {
         />
         <List.Item
           icon={{ source: "replicate.png" }}
-          title="Manage AI Models"
+          title="Raycast AI Models"
           subtitle="Choose what Raycast AI offers"
           actions={
             <ActionPanel>
-              <Action.Push title="Manage AI Models" target={<ManageAIModels />} />
+              <Action.Push title="Raycast AI Models" target={<ManageAIModels />} />
             </ActionPanel>
           }
         />

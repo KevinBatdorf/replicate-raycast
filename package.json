@@ -25,7 +25,7 @@
     },
     {
       "name": "manage-ai-models",
-      "title": "Manage AI Models",
+      "title": "Raycast AI Models",
       "subtitle": "Replicate",
       "description": "Choose which Replicate models appear in Raycast AI's model picker.",
       "mode": "view"
