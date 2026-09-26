@@ -50,7 +50,7 @@ export const AIModelDetail = ({ id, popular }: Props) => {
     <Detail
       isLoading={isLoading || loadingState}
       navigationTitle={id}
-      markdown={[model?.description, image ? `![${model?.name ?? id}](${image})` : undefined]
+      markdown={[model?.description, image && "&nbsp;", image && `![${model?.name ?? id}](${image})`]
         .filter(Boolean)
         .join("\n\n")}
       metadata={

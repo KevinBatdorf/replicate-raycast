@@ -49,6 +49,8 @@ export const ManageAIModels = () => {
     execute: Boolean(search),
   });
   const found = search ? results.filter((model) => !listed.includes(modelId(model))) : [];
+  // Search results leave out is_official, which only the full model carries.
+  const { data: foundDetails = {} } = usePromise(loadDetails, [found.map(modelId)]);
 
   const needle = search.toLowerCase();
   const matches = (id: string) =>
@@ -168,7 +170,7 @@ export const ManageAIModels = () => {
           const id = modelId(model);
           return item(
             id,
-            model,
+            foundDetails[id] ?? model,
             <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => addResult(id)} />,
           );
         })}
