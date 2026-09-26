@@ -1,5 +1,5 @@
-import { chatImage } from "../lib/images";
 import { getPrediction, waitForPrediction } from "../lib/replicate";
+import { altText } from "../utils/output";
 import { isRunning, logPercent } from "../utils/status";
 
 type Input = {
@@ -41,15 +41,13 @@ export default async function tool({ id }: Input) {
     throw new Error(`${prediction.model ?? "The model"} did not return an image. It may not be an image model.`);
   }
 
-  const prompt = prediction.input?.prompt ?? "";
-  const markdown = await Promise.all(urls.map((url, index) => chatImage(url, { name: `${id}-${index}`, prompt })));
+  const alt = altText(prediction.input?.prompt ?? "");
 
   return {
     status: prediction.status,
-    markdown: markdown.join("\n\n"),
-    // A tool can't show an image itself, so the chat model has to repeat the markdown.
-    instruction:
-      "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
+    // The chat model has to retype this, so it stays a short link rather than an embedded image.
+    markdown: urls.map((url) => `![${alt}](${url})`).join("\n\n"),
+    instruction: "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
     predictionUrl: `https://replicate.com/p/${id}`,
   };
 }

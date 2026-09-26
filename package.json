@@ -45,7 +45,7 @@
   ],
   "ai": {
     "modelProvider": "provider",
-    "instructions": "Generating an image takes two tools. Call start-generation, then call check-generation with the id it returns, and keep calling check-generation until the image is done or fails; each check waits up to ten seconds. Between calls, tell the user in a few words that it's still working. When it's done, reply with the check's `markdown` field exactly as given: the user can't see the image any other way, and it links to the full-size file. Unless the user names a model, start-generation runs the default model from the extension's preferences, which is black-forest-labs/flux-schnell unless they changed it. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
+    "instructions": "Generating an image takes two tools. Call start-generation, then call check-generation with the id it returns, and keep calling check-generation until the image is done or fails; each check waits up to ten seconds. Between calls, tell the user in a few words that it's still working. When it's done, reply with the check's `markdown` field exactly as given: the user can't see the image any other way. Unless the user names a model, start-generation runs the default model from the extension's preferences, which is black-forest-labs/flux-schnell unless they changed it. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
@@ -58,8 +58,8 @@
           },
           "check-generation": {
             "status": "succeeded",
-            "markdown": "[![a cat riding a bicycle through Tokyo at night](file:///tmp/abc123-0-preview.jpg)](https://replicate.delivery/abc123/out-0.webp)",
-            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
+            "markdown": "![a cat riding a bicycle through Tokyo at night](https://replicate.delivery/abc123/out-0.webp)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
             "predictionUrl": "https://replicate.com/p/abc123"
           }
         },
@@ -98,8 +98,8 @@
           },
           "check-generation": {
             "status": "succeeded",
-            "markdown": "[![a foggy pine forest](file:///tmp/def456-0-preview.jpg)](https://replicate.delivery/def456/out-0.webp)",
-            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
+            "markdown": "![a foggy pine forest](https://replicate.delivery/def456/out-0.webp)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
             "predictionUrl": "https://replicate.com/p/def456"
           }
         },
@@ -133,8 +133,8 @@
           },
           "check-generation": {
             "status": "succeeded",
-            "markdown": "[![a watercolour fox](file:///tmp/ghi789-0-preview.jpg)](https://replicate.delivery/ghi789/out-0.png)",
-            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
+            "markdown": "![a watercolour fox](https://replicate.delivery/ghi789/out-0.png)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
             "predictionUrl": "https://replicate.com/p/ghi789"
           }
         },
@@ -193,6 +193,32 @@
       "description": "List Replicate's most-run official image models in Raycast AI's model picker, refreshed daily. Models you add or chat with stay either way.",
       "default": true,
       "required": false
+    },
+    {
+      "name": "chatImageSize",
+      "type": "dropdown",
+      "title": "Chat Image Size",
+      "description": "How large images appear when you chat with a Replicate model. A smaller preview links to the full-size image. @replicate always shows the full size.",
+      "default": "320",
+      "required": false,
+      "data": [
+        {
+          "title": "Small (320px)",
+          "value": "320"
+        },
+        {
+          "title": "Medium (480px)",
+          "value": "480"
+        },
+        {
+          "title": "Large (640px)",
+          "value": "640"
+        },
+        {
+          "title": "Full size",
+          "value": "full"
+        }
+      ]
     }
   ],
   "dependencies": {
