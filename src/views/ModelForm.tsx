@@ -9,12 +9,12 @@ import { useModel } from "../hooks/useModel";
 import { ModelField } from "./ModelField";
 import { PredictionDetail } from "./PredictionDetail";
 
-type FormValues = Record<string, string | string[] | boolean>;
+export type FormValues = Record<string, string | string[] | boolean>;
 
 const asNumber = (value: string, field: Field) =>
   field.schema.type === "integer" ? Number.parseInt(value, 10) : Number.parseFloat(value);
 
-const buildInput = async (fields: Field[], values: FormValues) => {
+export const buildInput = async (fields: Field[], values: FormValues) => {
   const input: Record<string, unknown> = {};
 
   for (const field of fields) {

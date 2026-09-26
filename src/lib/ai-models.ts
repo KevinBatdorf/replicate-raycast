@@ -6,6 +6,7 @@ import { collectionModels, getModel, modelId } from "./replicate";
 
 const KEPT_KEY = "ai-models-kept";
 const HIDDEN_KEY = "ai-models-hidden";
+const DEFAULTS_KEY = "ai-models-defaults";
 const POPULAR_COLLECTIONS = ["text-to-image", "image-editing"];
 const POPULAR_PER_COLLECTION = 5;
 const ICON = "replicate.png";
@@ -29,6 +30,25 @@ export const keptModels = () => readList<KeptModel>(KEPT_KEY);
 export const keptModelIds = async () => (await keptModels()).map((model) => model.id);
 
 export const hiddenModelIds = () => readList<string>(HIDDEN_KEY);
+
+type Inputs = Record<string, unknown>;
+
+const readDefaults = async (): Promise<Record<string, Inputs>> => {
+  try {
+    const stored = await LocalStorage.getItem<string>(DEFAULTS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const chatDefaults = async (id: string): Promise<Inputs> => (await readDefaults())[id] ?? {};
+
+export const saveChatDefaults = async (id: string, inputs: Inputs) => {
+  const all = { ...(await readDefaults()), [id]: inputs };
+  if (!Object.keys(inputs).length) delete all[id];
+  await LocalStorage.setItem(DEFAULTS_KEY, JSON.stringify(all));
+};
 
 export const fullModel = (id: string) => {
   const [owner, name] = id.split("/");

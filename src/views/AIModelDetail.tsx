@@ -1,9 +1,12 @@
 import { Action, ActionPanel, Color, Detail, Icon } from "@raycast/api";
+import { usePromise } from "@raycast/utils";
 import { useAIModels } from "../hooks/useAIModels";
+import { chatDefaults } from "../lib/ai-models";
 import { useModel } from "../hooks/useModel";
 import { chatShape } from "../lib/chat";
 import { formatAgo } from "../utils/format";
 import { firstImage, outputItems } from "../utils/output";
+import { ChatDefaultsForm } from "./ChatDefaultsForm";
 import { ModelForm } from "./ModelForm";
 
 type Status = "kept" | "popular" | "hidden" | "none";
@@ -34,6 +37,7 @@ export const AIModelDetail = ({ id, popular }: Props) => {
   const status = statusOf(id, { kept: keptIds, hidden, popular });
   const saved = kept.find((entry) => entry.id === id);
   const shape = chatShape(model);
+  const { data: defaults = {}, revalidate: reloadDefaults } = usePromise(chatDefaults, [id]);
 
   const example = model?.default_example;
   const image = (example ? firstImage(outputItems(example.output)) : undefined) ?? model?.cover_image_url;
@@ -63,6 +67,13 @@ export const AIModelDetail = ({ id, popular }: Props) => {
               ))}
             </Detail.Metadata.TagList>
           )}
+          {Object.keys(defaults).length > 0 && (
+            <Detail.Metadata.TagList title="Chat Defaults">
+              {Object.entries(defaults).map(([name, value]) => (
+                <Detail.Metadata.TagList.Item key={name} text={`${name}: ${String(value)}`} />
+              ))}
+            </Detail.Metadata.TagList>
+          )}
           {saved?.usedAt && <Detail.Metadata.Label title="Last Used" text={formatAgo(saved.usedAt)} />}
           {saved?.addedAt && <Detail.Metadata.Label title="Added" text={formatAgo(saved.addedAt)} />}
           {model?.run_count ? <Detail.Metadata.Label title="Runs" text={compact.format(model.run_count)} /> : null}
@@ -86,6 +97,13 @@ export const AIModelDetail = ({ id, popular }: Props) => {
           {status === "hidden" && <Action icon={Icon.Eye} title="Show in Raycast AI" onAction={() => unhide(id)} />}
           {status === "none" && shape && (
             <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => add(id)} />
+          )}
+          {model && shape && (
+            <Action.Push
+              icon={Icon.Gear}
+              title="Set Chat Defaults"
+              target={<ChatDefaultsForm model={model} onSave={reloadDefaults} />}
+            />
           )}
           {model && <Action.Push icon={Icon.Play} title="Configure Inputs" target={<ModelForm model={model} />} />}
           <Action.OpenInBrowser icon={Icon.Globe} title="Open on Replicate" url={`https://replicate.com/${id}`} />

@@ -1,5 +1,5 @@
 import { AI, getPreferenceValues } from "@raycast/api";
-import { fullModel, recordUse, registeredModels } from "./lib/ai-models";
+import { chatDefaults, fullModel, recordUse, registeredModels } from "./lib/ai-models";
 import { chatInput, chatReply, chatShape, streamOutput } from "./lib/chat";
 import { saveOutputs } from "./lib/history";
 import { createPrediction, followPrediction, stillRunning } from "./lib/replicate";
@@ -38,7 +38,7 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
     name: model.name,
     version: model.latest_version?.id,
     official: model.is_official,
-    input,
+    input: { ...(await chatDefaults(registered.id)), ...input },
   });
 
   if (shape.output === "text" && created.urls?.stream) {
