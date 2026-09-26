@@ -6,7 +6,6 @@ import { useModel } from "../hooks/useModel";
 import { chatShape } from "../lib/chat";
 import { formatAgo } from "../utils/format";
 import { firstImage, outputItems } from "../utils/output";
-import { ChatDefaultsForm } from "./ChatDefaultsForm";
 import { ModelForm } from "./ModelForm";
 
 type Status = "kept" | "popular" | "hidden" | "none";
@@ -37,7 +36,7 @@ export const AIModelDetail = ({ id, popular }: Props) => {
   const status = statusOf(id, { kept: keptIds, hidden, popular });
   const saved = kept.find((entry) => entry.id === id);
   const shape = chatShape(model);
-  const { data: defaults = {}, revalidate: reloadDefaults } = usePromise(chatDefaults, [id]);
+  const { data: defaults = {} } = usePromise(chatDefaults, [id]);
 
   const example = model?.default_example;
   const image = (example ? firstImage(outputItems(example.output)) : undefined) ?? model?.cover_image_url;
@@ -54,9 +53,7 @@ export const AIModelDetail = ({ id, popular }: Props) => {
     <Detail
       isLoading={isLoading || loadingState}
       navigationTitle={id}
-      markdown={[model?.description, image && "&nbsp;", image && `![${model?.name ?? id}](${image})`]
-        .filter(Boolean)
-        .join("\n\n")}
+      markdown={[model?.description, image && `![${model?.name ?? id}](${image})`].filter(Boolean).join("\n\n")}
       metadata={
         <Detail.Metadata>
           <Detail.Metadata.Link title="Model" text={id} target={`https://replicate.com/${id}`} />
@@ -97,13 +94,6 @@ export const AIModelDetail = ({ id, popular }: Props) => {
           {status === "hidden" && <Action icon={Icon.Eye} title="Show in Raycast AI" onAction={() => unhide(id)} />}
           {status === "none" && shape && (
             <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => add(id)} />
-          )}
-          {model && shape && (
-            <Action.Push
-              icon={Icon.Gear}
-              title="Set Chat Defaults"
-              target={<ChatDefaultsForm model={model} onSave={reloadDefaults} />}
-            />
           )}
           {model && <Action.Push icon={Icon.Play} title="Configure Inputs" target={<ModelForm model={model} />} />}
           <Action.OpenInBrowser icon={Icon.Globe} title="Open on Replicate" url={`https://replicate.com/${id}`} />

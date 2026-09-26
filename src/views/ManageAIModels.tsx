@@ -17,6 +17,7 @@ import { errorMessage, modelId, searchModels } from "../lib/replicate";
 import { Model } from "../types";
 import { formatAgo } from "../utils/format";
 import { AIModelDetail } from "./AIModelDetail";
+import { ChatDefaultsForm } from "./ChatDefaultsForm";
 import { ModelList } from "./ModelList";
 
 const loadDetails = async (ids: string[]) => {
@@ -84,6 +85,11 @@ export const ManageAIModels = () => {
     </>
   );
 
+  const defaultsAction = (model?: Model) =>
+    model && chatShape(model) ? (
+      <Action.Push icon={Icon.Gear} title="Set Chat Defaults" target={<ChatDefaultsForm model={model} />} />
+    ) : null;
+
   const item = (
     id: string,
     model: Model | undefined,
@@ -143,7 +149,10 @@ export const ManageAIModels = () => {
             item(
               model.id,
               details[model.id],
-              <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(model.id)} />,
+              <>
+                {defaultsAction(details[model.id])}
+                <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(model.id)} />
+              </>,
               lastActivity(model),
             ),
           )}
@@ -152,6 +161,7 @@ export const ManageAIModels = () => {
             id,
             details[id],
             <>
+              {defaultsAction(details[id])}
               <Action icon={Icon.EyeDisabled} title="Hide from Raycast AI" onAction={() => hide(id)} />
               <Action icon={Icon.Pin} title="Keep in Raycast AI" onAction={() => add(id)} />
             </>,
