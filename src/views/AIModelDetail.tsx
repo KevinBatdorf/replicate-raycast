@@ -2,20 +2,22 @@ import { Action, ActionPanel, Color, Detail, Icon } from "@raycast/api";
 import { useAIModels } from "../hooks/useAIModels";
 import { useModel } from "../hooks/useModel";
 import { chatShape } from "../lib/chat";
-import { formatAgo, formatRuns } from "../utils/format";
+import { formatAgo } from "../utils/format";
 import { firstImage, outputItems } from "../utils/output";
 import { ModelForm } from "./ModelForm";
 
 type Status = "kept" | "popular" | "hidden" | "none";
+type Tag = { text: string; color: Color };
 
-const STATUS_TAGS: Record<Status, { text: string; color: Color }> = {
+const STATUS_TAGS: Record<Exclude<Status, "none">, Tag> = {
   kept: { text: "In Raycast AI", color: Color.Green },
   popular: { text: "Popular", color: Color.Blue },
   hidden: { text: "Hidden", color: Color.SecondaryText },
-  none: { text: "Not Added", color: Color.SecondaryText },
 };
 
-const statusOf = (id: string, { kept, hidden, popular }: Record<"kept" | "hidden" | "popular", string[]>) => {
+const compact = new Intl.NumberFormat(undefined, { notation: "compact" });
+
+const statusOf = (id: string, { kept, hidden, popular }: Record<"kept" | "hidden" | "popular", string[]>): Status => {
   if (kept.includes(id)) return "kept";
   if (hidden.includes(id)) return "hidden";
   if (popular.includes(id)) return "popular";
@@ -29,55 +31,43 @@ type Props = {
 export const AIModelDetail = ({ id, popular }: Props) => {
   const { data: model, isLoading } = useModel(id);
   const { kept, keptIds, hidden, isLoading: loadingState, add, remove, hide, unhide } = useAIModels();
-  const status: Status = statusOf(id, { kept: keptIds, hidden, popular });
+  const status = statusOf(id, { kept: keptIds, hidden, popular });
   const saved = kept.find((entry) => entry.id === id);
   const shape = chatShape(model);
 
   const example = model?.default_example;
   const image = (example ? firstImage(outputItems(example.output)) : undefined) ?? model?.cover_image_url;
   const prompt = example?.input?.prompt?.trim();
-  const markdown = [
-    image ? `![${model?.name ?? id}](${image})` : undefined,
-    model?.description,
-    prompt ? `**Example prompt** — ${prompt}` : undefined,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
 
-  const runs = formatRuns(model?.run_count);
+  const tags = [
+    status === "none" ? undefined : STATUS_TAGS[status],
+    model?.is_official ? { text: "Official", color: Color.Purple } : undefined,
+    shape?.output === "text" ? { text: "Text", color: Color.Orange } : undefined,
+    shape?.image ? { text: shape.image.required ? "Needs an Image" : "Edits Images", color: Color.Magenta } : undefined,
+    model && !shape ? { text: "Not for Chat", color: Color.Red } : undefined,
+  ].filter((tag): tag is Tag => Boolean(tag));
 
   return (
     <Detail
       isLoading={isLoading || loadingState}
       navigationTitle={id}
-      markdown={markdown}
+      markdown={image ? `![${model?.name ?? id}](${image})` : ""}
       metadata={
         <Detail.Metadata>
-          <Detail.Metadata.TagList title="Raycast AI">
-            <Detail.Metadata.TagList.Item text={STATUS_TAGS[status].text} color={STATUS_TAGS[status].color} />
-          </Detail.Metadata.TagList>
-          {saved?.usedAt && <Detail.Metadata.Label title="Last Used" text={formatAgo(saved.usedAt)} />}
-          {saved?.addedAt && <Detail.Metadata.Label title="Added" text={formatAgo(saved.addedAt)} />}
-          {model && (
-            <Detail.Metadata.Label
-              title="Replies With"
-              text={shape ? (shape.output === "image" ? "Images" : "Text") : "Output a chat can't show"}
-            />
-          )}
-          {shape && (
-            <Detail.Metadata.Label
-              title="Attached Images"
-              text={shape.image ? (shape.image.required ? "Required" : "Used when present") : "Ignored"}
-            />
-          )}
-          {runs && <Detail.Metadata.Label title="Runs" text={runs} />}
-          {model?.is_official && (
-            <Detail.Metadata.TagList title="Replicate">
-              <Detail.Metadata.TagList.Item text="Official" color={Color.Purple} />
+          <Detail.Metadata.Link title="Model" text={id} target={`https://replicate.com/${id}`} />
+          {model?.description && <Detail.Metadata.Label title="Description" text={model.description} />}
+          {prompt && <Detail.Metadata.Label title="Example Prompt" text={prompt} />}
+          {tags.length > 0 && (
+            <Detail.Metadata.TagList title="Tags">
+              {tags.map((tag) => (
+                <Detail.Metadata.TagList.Item key={tag.text} text={tag.text} color={tag.color} />
+              ))}
             </Detail.Metadata.TagList>
           )}
-          <Detail.Metadata.Separator />
-          <Detail.Metadata.Link title="Model" text={id} target={`https://replicate.com/${id}`} />
+          {saved?.usedAt && <Detail.Metadata.Label title="Last Used" text={formatAgo(saved.usedAt)} />}
+          {saved?.addedAt && <Detail.Metadata.Label title="Added" text={formatAgo(saved.addedAt)} />}
+          {model?.run_count ? <Detail.Metadata.Label title="Runs" text={compact.format(model.run_count)} /> : null}
+          {(model?.github_url || model?.paper_url || model?.license_url) && <Detail.Metadata.Separator />}
           {model?.github_url && <Detail.Metadata.Link title="Source" text="GitHub" target={model.github_url} />}
           {model?.paper_url && <Detail.Metadata.Link title="Paper" text="Read" target={model.paper_url} />}
           {model?.license_url && <Detail.Metadata.Link title="Licence" text="View" target={model.license_url} />}
