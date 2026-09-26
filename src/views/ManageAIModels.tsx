@@ -128,15 +128,19 @@ export const ManageAIModels = () => {
         </ActionPanel>
       }
     >
-      <List.EmptyView
-        icon={Icon.Stars}
-        title={search ? "No Models Found" : "No Models in Raycast AI"}
-        description={
-          search
-            ? "Try a different search, or browse collections in Run a Model."
-            : "Search Replicate's models and add the ones you want in the model picker."
-        }
-      />
+      {search && searching ? (
+        <List.EmptyView icon={Icon.MagnifyingGlass} title="Searching Replicate…" />
+      ) : (
+        <List.EmptyView
+          icon={Icon.Stars}
+          title={search ? "No Models Found" : "No Models in Raycast AI"}
+          description={
+            search
+              ? "Try a different search, or browse collections in Run a Model."
+              : "Search Replicate's models and add the ones you want in the model picker."
+          }
+        />
+      )}
       <List.Section>
         {[...kept]
           .sort((first, second) => activity(second) - activity(first))
