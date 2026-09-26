@@ -1,7 +1,8 @@
 import { getPreferenceValues } from "@raycast/api";
 import { readFile, writeFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, extname } from "node:path";
 import { CollectionResponse, CollectionsResponse, Model, Prediction, ReplicateFile, SearchResponse } from "../types";
+import { extensionFor } from "../utils/output";
 import { isRunning } from "../utils/status";
 
 const API_BASE = "https://api.replicate.com/v1";
@@ -53,8 +54,11 @@ export const downloadFile = async (url: string, destination: string) => {
   if (!response.ok) {
     throw new ReplicateError(response.status, `Download failed with ${response.status} ${response.statusText}`);
   }
-  await writeFile(destination, Buffer.from(await response.arrayBuffer()));
-  return destination;
+  // Some output URLs have no extension, which leaves the saved file unopenable.
+  const extension = extname(destination) ? undefined : extensionFor(response.headers.get("content-type"));
+  const path = extension ? `${destination}.${extension}` : destination;
+  await writeFile(path, Buffer.from(await response.arrayBuffer()));
+  return path;
 };
 
 export const cancelPrediction = (id: string) =>

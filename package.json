@@ -40,22 +40,16 @@
   ],
   "ai": {
     "modelProvider": "provider",
-    "instructions": "Show every generated image by repeating the `markdown` field from the generate-image result verbatim in your reply; an image the user cannot see counts as a failed generation. Keep the `images[].file` paths out of the reply unless the user asks where the file went. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
+    "instructions": "Show every generated image by replying with the `markdown` field from the generate-image result exactly as given; the user can't see an image any other way. Unless the user names a model, generate-image runs the default model from the extension's preferences, which is black-forest-labs/flux-schnell unless they changed it. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
         "mocks": {
           "generate-image": {
+            "markdown": "![a cat riding a bicycle through Tokyo at night](https://replicate.delivery/abc123/out-0.webp)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
             "model": "black-forest-labs/flux-schnell",
-            "prompt": "a cat riding a bicycle through Tokyo at night",
-            "predictionUrl": "https://replicate.com/p/abc123",
-            "images": [
-              {
-                "url": "https://replicate.delivery/abc123/out-0.webp",
-                "file": "/tmp/abc123-0.webp"
-              }
-            ],
-            "markdown": "![a cat riding a bicycle through Tokyo at night](https://replicate.delivery/abc123/out-0.webp)"
+            "predictionUrl": "https://replicate.com/p/abc123"
           }
         },
         "expected": [
@@ -78,16 +72,10 @@
         "input": "@replicate make me a 16:9 desktop wallpaper of a foggy pine forest",
         "mocks": {
           "generate-image": {
+            "markdown": "![a foggy pine forest](https://replicate.delivery/def456/out-0.webp)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
             "model": "black-forest-labs/flux-schnell",
-            "prompt": "a foggy pine forest",
-            "predictionUrl": "https://replicate.com/p/def456",
-            "images": [
-              {
-                "url": "https://replicate.delivery/def456/out-0.webp",
-                "file": "/tmp/def456-0.webp"
-              }
-            ],
-            "markdown": "![a foggy pine forest](https://replicate.delivery/def456/out-0.webp)"
+            "predictionUrl": "https://replicate.com/p/def456"
           }
         },
         "expected": [
@@ -105,16 +93,10 @@
         "input": "@replicate generate a watercolour fox with google/nano-banana",
         "mocks": {
           "generate-image": {
+            "markdown": "![a watercolour fox](https://replicate.delivery/ghi789/out-0.png)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
             "model": "google/nano-banana",
-            "prompt": "a watercolour fox",
-            "predictionUrl": "https://replicate.com/p/ghi789",
-            "images": [
-              {
-                "url": "https://replicate.delivery/ghi789/out-0.png",
-                "file": "/tmp/ghi789-0.png"
-              }
-            ],
-            "markdown": "![a watercolour fox](https://replicate.delivery/ghi789/out-0.png)"
+            "predictionUrl": "https://replicate.com/p/ghi789"
           }
         },
         "expected": [

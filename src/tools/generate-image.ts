@@ -88,20 +88,20 @@ export default async function tool(input: Input) {
 
   const directory = join(environment.supportPath, "generations");
   await mkdir(directory, { recursive: true });
-
-  const images = await Promise.all(
-    urls.map(async (url, index) => ({
-      url,
-      // Replicate deletes output files about an hour after the prediction runs.
-      file: await downloadFile(url, join(directory, `${prediction.id}-${index}${extname(new URL(url).pathname)}`)),
-    })),
+  // Replicate deletes outputs about an hour after they run; a failed copy shouldn't hide the image.
+  await Promise.all(
+    urls.map((url, index) =>
+      downloadFile(url, join(directory, `${prediction.id}-${index}${extname(new URL(url).pathname)}`)).catch(
+        () => undefined,
+      ),
+    ),
   );
 
   return {
+    markdown: urls.map((url) => `![${altText(input.prompt)}](${url})`).join("\n\n"),
+    // A tool can't show an image itself, so the chat model has to repeat the markdown.
+    instruction: "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
     model,
-    prompt: input.prompt,
     predictionUrl: `https://replicate.com/p/${prediction.id}`,
-    images,
-    markdown: images.map(({ url }) => `![${altText(input.prompt)}](${url})`).join("\n\n"),
   };
 }

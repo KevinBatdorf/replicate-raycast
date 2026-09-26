@@ -1,6 +1,6 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
-import { altText, outputItems } from "../utils/output";
+import { altText, extensionFor, outputItems } from "../utils/output";
 import { ReplicateError, uploadBytes } from "./replicate";
 
 export type ChatShape = {
@@ -114,8 +114,7 @@ const toBuffer = (data: Exclude<ImageRef["data"], URL>) => {
 const toUrl = async ({ data, mediaType }: ImageRef) => {
   if (data instanceof URL) return data.href;
   if (typeof data === "string" && /^(https?:|data:)/.test(data)) return data;
-  const extension = mediaType.split("/")[1]?.replace("jpeg", "jpg") || "png";
-  return uploadBytes(toBuffer(data), `attachment.${extension}`, mediaType);
+  return uploadBytes(toBuffer(data), `attachment.${extensionFor(mediaType) ?? "png"}`, mediaType);
 };
 
 const transcript = (messages: AI.ModelMessage[]) => {
@@ -153,13 +152,16 @@ export const chatInput = async (model: Model, shape: ChatShape, request: AI.Mode
   return { input, prompt };
 };
 
-export const chatReply = (prediction: Prediction, prompt: string) => {
+export const chatReply = (prediction: Prediction, prompt: string, shape: ChatShape) => {
   const items = outputItems(prediction.output);
   if (!items.length) throw new Error("The model finished without returning anything.");
   return items
     .map((item) => {
       if (item.kind === "text") return item.text;
-      if (item.kind === "image") return `![${altText(prompt)}](${item.url})`;
+      // Some image URLs have no extension, so an image model's plain file is still its image.
+      if (item.kind === "image" || (item.kind === "file" && shape.output === "image")) {
+        return `![${altText(prompt)}](${item.url})`;
+      }
       return `[${item.kind === "file" ? "Open file" : `Play ${item.kind}`}](${item.url})`;
     })
     .join("\n\n");

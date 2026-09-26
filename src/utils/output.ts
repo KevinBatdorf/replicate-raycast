@@ -19,6 +19,9 @@ const KIND_LABELS: Record<FileOutput["kind"], string> = {
 
 export const kindLabel = (kind: FileOutput["kind"]) => KIND_LABELS[kind];
 
+export const extensionFor = (mediaType?: string | null) =>
+  mediaType?.split(";")[0].split("/")[1]?.replace("jpeg", "jpg").replace(/\+.*/, "") || undefined;
+
 export const altText = (prompt: string) => prompt.replace(/\s+/g, " ").replace(/[[\]]/g, "").trim().slice(0, 80);
 
 const asUrl = (value: string) => {

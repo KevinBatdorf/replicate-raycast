@@ -32,5 +32,5 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
 
   const finished = await waitForPrediction(prediction);
   if (finished.status !== "succeeded") throw new Error(finished.error ?? `The prediction ${finished.status}.`);
-  yield chatReply(finished, prompt);
+  yield chatReply(finished, prompt, shape);
 };
