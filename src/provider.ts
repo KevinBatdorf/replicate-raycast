@@ -1,6 +1,6 @@
 import { AI, getPreferenceValues } from "@raycast/api";
-import { chatDefaults, fullModel, recordUse, registeredModels } from "./lib/ai-models";
-import { chatInput, chatReply, chatShape, streamOutput } from "./lib/chat";
+import { chatDefaults, fullModel, pickerModelIds, recordUse, registeredModels } from "./lib/ai-models";
+import { chatInput, chatReply, chatShape, sentImage, streamOutput } from "./lib/chat";
 import { saveOutputs } from "./lib/history";
 import { createPrediction, followPrediction, RAYCAST_AI_CANCEL_AFTER, stillRunning } from "./lib/replicate";
 import { Prediction } from "./types";
@@ -20,6 +20,21 @@ const progress = (prediction: Prediction) => {
   return percent ? `Generating… ${percent}%` : "Generating…";
 };
 
+const editingModels = async () => {
+  const { kept, popular } = await pickerModelIds();
+  const models = await Promise.all([...kept, ...popular].map((id) => fullModel(id).catch(() => undefined)));
+  return models
+    .filter((model) => model && chatShape(model)?.image)
+    .map((model) => `${model?.owner}/${model?.name}`)
+    .slice(0, 2);
+};
+
+const noImageReply = async (id: string) => {
+  const suggestions = await editingModels();
+  const pick = suggestions.length ? ` Pick one that does, like ${suggestions.join(" or ")}, and send it again.` : "";
+  return `${id} can't use images, so nothing ran and nothing was billed.${pick}`;
+};
+
 export const getModels: AI.GetModels = () => registeredModels();
 
 // Status goes out as reasoning so a slow run shows movement without ending up in the answer.
@@ -31,6 +46,15 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
   const shape = chatShape(model);
   if (!shape) throw new Error(`${registered.id} returns output that a chat can't show.`);
   await recordUse(registered.id);
+
+  if (!shape.image && sentImage(request.messages ?? [])) {
+    yield { type: "reasoning-end", id: STATUS };
+    yield { type: "text-start", id: ANSWER };
+    yield answer(await noImageReply(registered.id));
+    yield { type: "text-end", id: ANSWER };
+    yield { type: "finish", finishReason: "stop" };
+    return;
+  }
 
   const { input, prompt } = await chatInput(model, shape, request);
   const created = await createPrediction({

@@ -67,12 +67,13 @@ export const chatShape = (model?: Model | null): ChatShape | undefined => {
   };
 };
 
+// Every model takes attachments: Raycast drops them silently otherwise, and the chat couldn't say why.
 export const chatCapabilities = (shape: ChatShape): AI.RegisteredModel["capabilities"] => ({
   systemMessage: { supported: Boolean(shape.system) },
   temperature: { supported: Boolean(shape.temperature) },
   streaming: { supported: shape.output === "text" },
   tools: { supported: false },
-  ...(shape.image ? { vision: { mediaTypes: VISION_TYPES } } : {}),
+  vision: { mediaTypes: VISION_TYPES },
 });
 
 type ImageRef = { data: string | Uint8Array | ArrayBuffer | URL; mediaType: string };
@@ -109,6 +110,11 @@ const imageIn = (message: AI.ModelMessage): ImageRef | undefined => {
       ? [...textOf(message).matchAll(PASTED_URL)].map((match) => match[0]).findLast(isImageUrl)
       : [...textOf(message).matchAll(MARKDOWN_IMAGE)].at(-1)?.[1];
   return url ? { data: url, mediaType: "image/*" } : undefined;
+};
+
+export const sentImage = (messages: AI.ModelMessage[]) => {
+  const last = messages.findLast((message) => message.role === "user");
+  return Boolean(last && imageIn(last));
 };
 
 // The newest image is the one a follow-up like "make it bluer" means.

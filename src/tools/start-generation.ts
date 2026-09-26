@@ -15,7 +15,8 @@ type Input = {
    */
   model?: string;
   /**
-   * The URL of an image to change, such as one from an earlier generation. Only for models that edit images.
+   * The URL of an image to change, such as an earlier generation's or one the user pasted. Only for models that
+   * edit images. An image attached to the chat can't be passed here; only a URL can.
    */
   image?: string;
   /**
