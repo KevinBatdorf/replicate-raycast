@@ -78,6 +78,17 @@ export const chatCapabilities = (shape: ChatShape): AI.RegisteredModel["capabili
 type ImageRef = { data: string | Uint8Array | ArrayBuffer | URL; mediaType: string };
 
 const MARKDOWN_IMAGE = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g;
+const PASTED_URL = /https?:\/\/[^\s<>()"']+/g;
+
+// A pasted page link isn't an image, so only image files and Replicate outputs count.
+const isImageUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return /\.(png|jpe?g|webp|gif)$/i.test(url.pathname) || url.hostname === "replicate.delivery";
+  } catch {
+    return false;
+  }
+};
 
 const textOf = (message: AI.ModelMessage) => {
   if (message.role === "system") return message.content;
@@ -93,8 +104,10 @@ const imageIn = (message: AI.ModelMessage): ImageRef | undefined => {
   for (const part of [...message.content].reverse()) {
     if (part.type === "file" && part.mediaType.startsWith("image/")) return part;
   }
-  if (message.role === "user") return undefined;
-  const url = [...textOf(message).matchAll(MARKDOWN_IMAGE)].at(-1)?.[1];
+  const url =
+    message.role === "user"
+      ? [...textOf(message).matchAll(PASTED_URL)].map((match) => match[0]).findLast(isImageUrl)
+      : [...textOf(message).matchAll(MARKDOWN_IMAGE)].at(-1)?.[1];
   return url ? { data: url, mediaType: "image/*" } : undefined;
 };
 
