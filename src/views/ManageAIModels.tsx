@@ -15,6 +15,7 @@ import { fullModel, popularModelIds } from "../lib/ai-models";
 import { chatShape } from "../lib/chat";
 import { errorMessage, modelId, searchModels } from "../lib/replicate";
 import { Model } from "../types";
+import { AIModelDetail } from "./AIModelDetail";
 import { ModelList } from "./ModelList";
 
 const loadDetails = async (ids: string[]) => {
@@ -30,7 +31,8 @@ export const ManageAIModels = () => {
     execute: popularModels,
   });
 
-  const shownPopular = popularModels ? popular.filter((id) => !added.includes(id) && !hidden.includes(id)) : [];
+  const popularIds = popularModels ? popular : [];
+  const shownPopular = popularIds.filter((id) => !added.includes(id) && !hidden.includes(id));
   const listed = [...added, ...shownPopular, ...hidden];
   const { data: details = {} } = usePromise(loadDetails, [listed]);
 
@@ -79,7 +81,18 @@ export const ManageAIModels = () => {
       title={id}
       subtitle={model?.description}
       accessories={model?.is_official ? [{ tag: "Official" }] : undefined}
-      actions={actions}
+      actions={
+        <ActionPanel>
+          <Action.Push
+            icon={Icon.Sidebar}
+            title="Show Details"
+            target={<AIModelDetail id={id} popular={popularIds} />}
+            onPop={revalidate}
+          />
+          {actions}
+          {common(id)}
+        </ActionPanel>
+      }
     />
   );
 
@@ -108,41 +121,34 @@ export const ManageAIModels = () => {
         actions={<ActionPanel>{browse}</ActionPanel>}
       />
       <List.Section title="Added by You" subtitle="Stay until you remove them">
-        {added.filter(matches).map((id) =>
-          item(
-            id,
-            details[id],
-            <ActionPanel>
-              <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(id)} />
-              {common(id)}
-            </ActionPanel>,
-          ),
-        )}
+        {added
+          .filter(matches)
+          .map((id) =>
+            item(
+              id,
+              details[id],
+              <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(id)} />,
+            ),
+          )}
       </List.Section>
       <List.Section title="Popular" subtitle="Refreshed daily">
         {shownPopular.filter(matches).map((id) =>
           item(
             id,
             details[id],
-            <ActionPanel>
+            <>
               <Action icon={Icon.EyeDisabled} title="Hide from Raycast AI" onAction={() => hide(id)} />
               <Action icon={Icon.Pin} title="Keep in Raycast AI" onAction={() => add(id)} />
-              {common(id)}
-            </ActionPanel>,
+            </>,
           ),
         )}
       </List.Section>
       <List.Section title="Hidden">
-        {hidden.filter(matches).map((id) =>
-          item(
-            id,
-            details[id],
-            <ActionPanel>
-              <Action icon={Icon.Eye} title="Show in Raycast AI" onAction={() => unhide(id)} />
-              {common(id)}
-            </ActionPanel>,
-          ),
-        )}
+        {hidden
+          .filter(matches)
+          .map((id) =>
+            item(id, details[id], <Action icon={Icon.Eye} title="Show in Raycast AI" onAction={() => unhide(id)} />),
+          )}
       </List.Section>
       <List.Section title="Replicate">
         {found.map((model) => {
@@ -150,10 +156,7 @@ export const ManageAIModels = () => {
           return item(
             id,
             model,
-            <ActionPanel>
-              <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => addResult(id)} />
-              {common(id)}
-            </ActionPanel>,
+            <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => addResult(id)} />,
           );
         })}
       </List.Section>
