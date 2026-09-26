@@ -22,6 +22,7 @@ export type Prediction = {
   error?: string | null;
   logs?: string | null;
   created_at?: string;
+  started_at?: string;
   completed_at?: string;
   metrics?: {
     predict_time?: number;
