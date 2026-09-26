@@ -27,6 +27,29 @@ type Input = {
    * How many images to generate. Defaults to one; most models refuse more than four.
    */
   count?: number;
+  /**
+   * Any other inputs the model takes, as a JSON object keyed by the names describe-model lists,
+   * e.g. `{"seed": 42, "output_format": "png"}`. Only include what the user asked for.
+   */
+  inputs?: string;
+};
+
+const parseInputs = (inputs: string | undefined, known?: Record<string, unknown>) => {
+  if (!inputs?.trim()) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(inputs);
+  } catch {
+    throw new Error('inputs must be a JSON object, like {"seed": 42}.');
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error('inputs must be a JSON object, like {"seed": 42}.');
+  }
+  const unknown = known ? Object.keys(parsed).filter((name) => !(name in known)) : [];
+  if (unknown.length) {
+    throw new Error(`The model has no input named ${unknown.join(", ")}. Call describe-model for its inputs.`);
+  }
+  return parsed as Record<string, unknown>;
 };
 
 const FALLBACK_MODEL = "black-forest-labs/flux-schnell";
@@ -60,8 +83,8 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => {
 const START_WAIT_SECONDS = 5;
 
 /**
- * Start generating an image from a text prompt on Replicate. Waits up to five seconds, then returns the
- * image if it's done, or an id for check-generation.
+ * Run an image model on Replicate. Waits up to five seconds, then returns the image if it's done, or an id
+ * for check-generation.
  */
 export default async function tool(input: Input) {
   const model = resolveModel(input.model);
@@ -88,6 +111,7 @@ export default async function tool(input: Input) {
     cancelAfter: RAYCAST_AI_CANCEL_AFTER,
     input: {
       ...(await chatDefaults(`${owner}/${modelName}`)),
+      ...parseInputs(input.inputs, accepts),
       [shape?.prompt ?? "prompt"]: input.prompt,
       ...(input.image && shape?.image
         ? { [shape.image.name]: shape.image.multiple ? [input.image] : input.image }

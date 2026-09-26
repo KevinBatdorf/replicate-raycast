@@ -35,12 +35,22 @@
     {
       "name": "list-models",
       "title": "List Image Models",
-      "description": "List the image models in the user's Raycast AI model picker, with each one's description, whether it edits images, and the user's default model if they set one."
+      "description": "List the image models in the user's Raycast AI model picker, with what each one does, whether it edits images or needs one, and the user's default model. Use Search Models to look beyond these."
+    },
+    {
+      "name": "search-models",
+      "title": "Search Models",
+      "description": "Search all of Replicate for image models matching a query, with what each one does, whether it edits images, and whether it's already in the user's picker. Ask the user before running one that isn't."
+    },
+    {
+      "name": "describe-model",
+      "title": "Describe Model",
+      "description": "Get a Replicate model's inputs — names, types, allowed values, bounds and defaults — so Start Image Generation can set them."
     },
     {
       "name": "start-generation",
       "title": "Start Image Generation",
-      "description": "Start generating an image from a text prompt by running a model on Replicate. Returns straight away with an id to pass to Check Image Generation."
+      "description": "Run an image model on Replicate. Takes a prompt, optionally an image URL to edit and any of the model's other inputs. Waits up to five seconds and returns the finished image if it's ready, otherwise an id for Check Image Generation."
     },
     {
       "name": "check-generation",
@@ -50,7 +60,7 @@
   ],
   "ai": {
     "modelProvider": "provider",
-    "instructions": "Generating an image takes up to three steps. Unless the user names a model, call list-models and use its default, or when there's no default pick the model whose description best fits the request. Then call start-generation. If its result has `markdown`, the image is already done. Otherwise call check-generation with the id it returns, again and again, until the image is done or fails; each check waits up to ten seconds. Don't reply to the user between these calls: a reply ends your turn and the image never arrives. When it's done, reply with the `markdown` field exactly as given: the user can't see the image any other way. To change an existing image, pick a model that edits images and pass the image's URL as `image`. Replicate models are written as owner/name; never invent one.",
+    "instructions": "To make or edit an image: unless the user names a model, call list-models and use its default, or when there's no default pick the model whose description best fits. If none fits, call search-models, tell the user which model you'd use and why, and wait for them to agree before running it. When the user asks for something beyond the prompt, like a seed, a style strength or a file format, call describe-model and pass those as `inputs`. To change an existing image, use a model that edits images and pass the image's URL as `image`: an earlier result's URL or one the user pasted. Then call start-generation. If its result has `markdown`, the image is done. Otherwise call check-generation with the id, again and again, until it's done or fails; each check waits up to ten seconds. Don't reply between these calls: a reply ends your turn and the image never arrives. When it's done, reply with the `markdown` field exactly as given: the user can't see the image any other way. Replicate models are written as owner/name; never invent one.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
