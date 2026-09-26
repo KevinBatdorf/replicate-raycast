@@ -18,7 +18,6 @@ import { Model } from "../types";
 import { formatAgo } from "../utils/format";
 import { AIModelDetail } from "./AIModelDetail";
 import { ChatDefaultsForm } from "./ChatDefaultsForm";
-import { ModelList } from "./ModelList";
 
 const loadDetails = async (ids: string[]) => {
   const models = await Promise.all(ids.map((id) => fullModel(id).catch(() => undefined)));
@@ -74,12 +73,8 @@ export const ManageAIModels = () => {
     await add(id);
   };
 
-  const browse = (
-    <Action.Push icon={Icon.MagnifyingGlass} title="Browse Models" target={<ModelList />} onPop={revalidate} />
-  );
   const common = (id: string) => (
     <>
-      {browse}
       <Action.OpenInBrowser icon={Icon.Globe} title="Open on Replicate" url={`https://replicate.com/${id}`} />
       <Action.CopyToClipboard icon={Icon.Text} title="Copy Model Name" content={id} />
     </>
@@ -129,7 +124,6 @@ export const ManageAIModels = () => {
       throttle
       actions={
         <ActionPanel>
-          {browse}
           <Action icon={Icon.Gear} title="Open Extension Preferences" onAction={openExtensionPreferences} />
         </ActionPanel>
       }
@@ -139,10 +133,9 @@ export const ManageAIModels = () => {
         title={search ? "No Models Found" : "No Models in Raycast AI"}
         description={
           search
-            ? "Try a different search, or browse Replicate's collections."
+            ? "Try a different search, or browse collections in Run a Model."
             : "Search Replicate's models and add the ones you want in the model picker."
         }
-        actions={<ActionPanel>{browse}</ActionPanel>}
       />
       <List.Section title="In Raycast AI">
         {[...kept]
