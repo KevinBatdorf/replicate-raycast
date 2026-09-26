@@ -1,39 +1,60 @@
-import { useEffect, useRef, useState } from "react";
-import { usePromise } from "@raycast/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Prediction, PredictionResponse } from "../types";
 import { getPrediction, replicateFetch } from "../lib/replicate";
 import { POLL_INTERVAL_MS, isRunning } from "../utils/status";
 
+const FIRST_PAGE = "/predictions";
 const MAX_POLLED = 5;
 
-export const usePredictions = () => {
-  const seen = useRef(new Set<string>());
-  const result = usePromise(
-    () =>
-      async ({ cursor }: { cursor?: string }) => {
-        if (!cursor) seen.current = new Set();
-        const response = await replicateFetch<PredictionResponse>(cursor ?? "/predictions");
-        // Later pages can return predictions an earlier page already listed.
-        const fresh = response.results.filter((prediction) => !seen.current.has(prediction.id));
-        return {
-          data: fresh,
-          hasMore: Boolean(response.next) && fresh.length > 0,
-          cursor: response.next ?? undefined,
-        };
-      },
-    [],
-    {
-      // Only pages that land count as seen; a load Raycast discards must not hide its page.
-      onData: (page: Prediction[]) => {
-        for (const prediction of page) seen.current.add(prediction.id);
-      },
-    },
-  );
+export const mergePage = (current: Prediction[], page: Prediction[]) => {
+  const listed = new Set(current.map((prediction) => prediction.id));
+  return [...current, ...page.filter((prediction) => !listed.has(prediction.id))];
+};
 
-  // Kept apart from the paged data: mutating it cancels whichever page is still loading.
+export const usePredictions = () => {
+  const [loaded, setLoaded] = useState<Prediction[]>();
+  const [next, setNext] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error>();
+  // One page at a time, and never the same page twice, or the list loops on a repeated cursor.
+  const busy = useRef(false);
+  const requested = useRef(new Set<string>());
+  const generation = useRef(0);
+
+  const load = useCallback(async (url: string, { reset = false } = {}) => {
+    if (!reset && (busy.current || requested.current.has(url))) return;
+    if (reset) {
+      generation.current += 1;
+      requested.current = new Set();
+    }
+    const current = generation.current;
+    busy.current = true;
+    requested.current.add(url);
+    setIsLoading(true);
+    try {
+      const response = await replicateFetch<PredictionResponse>(url);
+      if (current !== generation.current) return;
+      setLoaded((listed) => mergePage(reset ? [] : (listed ?? []), response.results));
+      setNext(response.next && !requested.current.has(response.next) ? response.next : null);
+      setError(undefined);
+    } catch (caught) {
+      if (current === generation.current) setError(caught instanceof Error ? caught : new Error(String(caught)));
+    } finally {
+      if (current === generation.current) {
+        busy.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    load(FIRST_PAGE, { reset: true });
+  }, [load]);
+
+  // Kept apart from the paged data so a status refresh never disturbs paging.
   const [live, setLive] = useState<Record<string, Prediction>>({});
-  const predictions = (result.data ?? []).map((prediction) => live[prediction.id] ?? prediction);
-  const ids = predictions
+  const predictions = loaded?.map((prediction) => live[prediction.id] ?? prediction);
+  const ids = (predictions ?? [])
     .filter(isRunning)
     .slice(0, MAX_POLLED)
     .map((prediction) => prediction.id)
@@ -55,8 +76,20 @@ export const usePredictions = () => {
 
   const revalidate = () => {
     setLive({});
-    return result.revalidate();
+    return load(FIRST_PAGE, { reset: true });
   };
 
-  return { ...result, data: result.data ? predictions : undefined, revalidate };
+  return {
+    data: predictions,
+    isLoading,
+    error,
+    revalidate,
+    pagination: {
+      pageSize: 100,
+      hasMore: Boolean(next),
+      onLoadMore: () => {
+        if (next) load(next);
+      },
+    },
+  };
 };
