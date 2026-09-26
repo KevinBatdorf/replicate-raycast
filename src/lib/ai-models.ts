@@ -7,7 +7,7 @@ import { collectionModels, getModel, modelId } from "./replicate";
 const KEPT_KEY = "ai-models-kept";
 const HIDDEN_KEY = "ai-models-hidden";
 const DEFAULTS_KEY = "ai-models-defaults";
-const POPULAR_COLLECTIONS = ["text-to-image", "image-editing"];
+const POPULAR_COLLECTIONS = ["text-to-image", "image-editing", "language-models"];
 const POPULAR_PER_COLLECTION = 5;
 const ICON = "replicate.png";
 
@@ -56,18 +56,23 @@ export const fullModel = (id: string) => {
 };
 
 // Run counts are all-time, so official models go first to keep 2023 Stable Diffusion off the top.
-const pickPopular = (models: Model[]) => {
-  const usable = models.filter((model) => !model.latest_version || chatShape(model));
-  return [...usable.filter((model) => model.is_official), ...usable.filter((model) => !model.is_official)].slice(
-    0,
-    POPULAR_PER_COLLECTION,
-  );
+const pickPopular = async (models: Model[]) => {
+  const ordered = [...models.filter((model) => model.is_official), ...models.filter((model) => !model.is_official)];
+  const picked: string[] = [];
+  for (const model of ordered) {
+    if (picked.length === POPULAR_PER_COLLECTION) break;
+    // A collection model can arrive without its schema, which decides whether a chat can use it.
+    const full = model.latest_version ? model : await fullModel(modelId(model)).catch(() => undefined);
+    if (chatShape(full)) picked.push(modelId(model));
+  }
+  return picked;
 };
 
 export const popularModelIds = () =>
-  cached("ai-models:popular", DAY_MS, async () => {
+  cached("ai-models:popular-v2", DAY_MS, async () => {
     const lists = await Promise.all(POPULAR_COLLECTIONS.map(collectionModels));
-    return [...new Set(lists.flatMap((models) => pickPopular(models).map(modelId)))];
+    const picks = await Promise.all(lists.map(pickPopular));
+    return [...new Set(picks.flat())];
   });
 
 const register = (model: Model): AI.RegisteredModel | undefined => {
