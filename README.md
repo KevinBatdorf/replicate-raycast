@@ -8,8 +8,8 @@ Source repo: https://github.com/KevinBatdorf/replicate-raycast
 
 ## Features
 
-- Ask Raycast AI to generate an image (`@replicate generate a ...`) and see it in the chat
-- Run models
-- Search your prompts
-- View predictions as a grid
-- View details about a prediction
+- Use Replicate's image, image-editing and text models right in Raycast AI's model picker (requires Raycast Pro)
+- Ask any Raycast AI chat to make or edit an image with `@replicate`
+- Choose which models Raycast AI offers, and set per-model defaults, with Raycast AI Models
+- Run any Replicate model from a form built from its inputs
+- View your predictions, with generated images saved on your computer
