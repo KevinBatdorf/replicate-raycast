@@ -1,6 +1,7 @@
 import { Tool, getPreferenceValues } from "@raycast/api";
 import { chatImage } from "../lib/images";
-import { createPrediction, waitForPrediction } from "../lib/replicate";
+import { createPrediction, stillRunning, waitForPrediction } from "../lib/replicate";
+import { isRunning } from "../utils/status";
 
 type Input = {
   /**
@@ -72,6 +73,7 @@ export default async function tool(input: Input) {
     }),
   );
 
+  if (isRunning(prediction)) throw stillRunning(prediction);
   if (prediction.status !== "succeeded") {
     throw new Error(prediction.error ?? `The prediction ${prediction.status}.`);
   }

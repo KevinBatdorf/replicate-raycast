@@ -148,17 +148,30 @@ const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 180_000;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const waitForPrediction = async (initial: Prediction) => {
+type Follow = { interval?: number; timeout?: number };
+
+// Stops at the timeout rather than throwing, so a caller can report a prediction still running.
+export async function* followPrediction(
+  initial: Prediction,
+  { interval = POLL_INTERVAL_MS, timeout = POLL_TIMEOUT_MS }: Follow = {},
+) {
+  const deadline = Date.now() + timeout;
   let prediction = initial;
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (isRunning(prediction)) {
-    if (Date.now() > deadline) {
-      throw new Error(
-        `The prediction is still running. Check it at https://replicate.com/p/${prediction.id} and try a faster model.`,
-      );
-    }
-    await sleep(POLL_INTERVAL_MS);
+  yield prediction;
+  while (isRunning(prediction) && Date.now() < deadline) {
+    await sleep(interval);
     prediction = await replicateFetch<Prediction>(`/predictions/${prediction.id}`);
+    yield prediction;
   }
-  return prediction;
+}
+
+export const waitForPrediction = async (initial: Prediction, options?: Follow) => {
+  let latest = initial;
+  for await (const prediction of followPrediction(initial, options)) latest = prediction;
+  return latest;
 };
+
+export const stillRunning = (prediction: Prediction) =>
+  new Error(
+    `The prediction is still running. Check it at https://replicate.com/p/${prediction.id} and try a faster model.`,
+  );
