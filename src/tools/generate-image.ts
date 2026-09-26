@@ -2,7 +2,7 @@ import { Tool, environment, getPreferenceValues } from "@raycast/api";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { createPrediction, downloadFile, waitForPrediction } from "../lib/replicate";
-import { altText, CHAT_IMAGE_WIDTH, sizedImage } from "../utils/output";
+import { chatImage } from "../utils/output";
 
 type Input = {
   /**
@@ -88,8 +88,8 @@ export default async function tool(input: Input) {
 
   const directory = join(environment.supportPath, "generations");
   await mkdir(directory, { recursive: true });
-  // Replicate deletes outputs about an hour after they run; a failed copy shouldn't hide the image.
-  await Promise.all(
+  // Replicate deletes outputs about an hour after they run; the copy mustn't delay the reply.
+  void Promise.all(
     urls.map((url, index) =>
       downloadFile(url, join(directory, `${prediction.id}-${index}${extname(new URL(url).pathname)}`)).catch(
         () => undefined,
@@ -98,7 +98,7 @@ export default async function tool(input: Input) {
   );
 
   return {
-    markdown: urls.map((url) => `![${altText(input.prompt)}](${sizedImage(url, CHAT_IMAGE_WIDTH)})`).join("\n\n"),
+    markdown: urls.map((url) => chatImage(url, input.prompt)).join("\n\n"),
     // A tool can't show an image itself, so the chat model has to repeat the markdown.
     instruction: "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
     model,

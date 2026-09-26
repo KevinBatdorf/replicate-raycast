@@ -1,6 +1,6 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
-import { altText, CHAT_IMAGE_WIDTH, extensionFor, outputItems, sizedImage } from "../utils/output";
+import { chatImage, extensionFor, outputItems } from "../utils/output";
 import { ReplicateError, uploadBytes } from "./replicate";
 
 export type ChatShape = {
@@ -77,7 +77,7 @@ export const chatCapabilities = (shape: ChatShape): AI.RegisteredModel["capabili
 
 type ImageRef = { data: string | Uint8Array | ArrayBuffer | URL; mediaType: string };
 
-const MARKDOWN_IMAGE = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g;
+const REPLY_IMAGE = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)|<img[^>]*\ssrc="(https?:\/\/[^"]+)"/g;
 
 const textOf = (message: AI.ModelMessage) => {
   if (message.role === "system") return message.content;
@@ -94,7 +94,8 @@ const imageIn = (message: AI.ModelMessage): ImageRef | undefined => {
     if (part.type === "file" && part.mediaType.startsWith("image/")) return part;
   }
   if (message.role === "user") return undefined;
-  const url = [...textOf(message).matchAll(MARKDOWN_IMAGE)].at(-1)?.[1];
+  const match = [...textOf(message).matchAll(REPLY_IMAGE)].at(-1);
+  const url = match?.[1] ?? match?.[2];
   return url ? { data: url, mediaType: "image/*" } : undefined;
 };
 
@@ -160,7 +161,7 @@ export const chatReply = (prediction: Prediction, prompt: string, shape: ChatSha
       if (item.kind === "text") return item.text;
       // Some image URLs have no extension, so an image model's plain file is still its image.
       if (item.kind === "image" || (item.kind === "file" && shape.output === "image")) {
-        return `![${altText(prompt)}](${sizedImage(item.url, CHAT_IMAGE_WIDTH)})`;
+        return chatImage(item.url, prompt);
       }
       return `[${item.kind === "file" ? "Open file" : `Play ${item.kind}`}](${item.url})`;
     })
