@@ -153,7 +153,6 @@ export const ManageAIModels = () => {
               <Action icon={Icon.EyeDisabled} title="Hide from Raycast AI" onAction={() => hide(id)} />
               <Action icon={Icon.Pin} title="Keep in Raycast AI" onAction={() => add(id)} />
             </>,
-            [{ text: "Popular" }],
           ),
         )}
       </List.Section>

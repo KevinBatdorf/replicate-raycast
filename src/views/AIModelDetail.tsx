@@ -37,7 +37,6 @@ export const AIModelDetail = ({ id, popular }: Props) => {
 
   const example = model?.default_example;
   const image = (example ? firstImage(outputItems(example.output)) : undefined) ?? model?.cover_image_url;
-  const prompt = example?.input?.prompt?.trim();
 
   const tags = [
     status === "none" ? undefined : STATUS_TAGS[status],
@@ -51,12 +50,12 @@ export const AIModelDetail = ({ id, popular }: Props) => {
     <Detail
       isLoading={isLoading || loadingState}
       navigationTitle={id}
-      markdown={image ? `![${model?.name ?? id}](${image})` : ""}
+      markdown={[model?.description, image ? `![${model?.name ?? id}](${image})` : undefined]
+        .filter(Boolean)
+        .join("\n\n")}
       metadata={
         <Detail.Metadata>
           <Detail.Metadata.Link title="Model" text={id} target={`https://replicate.com/${id}`} />
-          {model?.description && <Detail.Metadata.Label title="Description" text={model.description} />}
-          {prompt && <Detail.Metadata.Label title="Example Prompt" text={prompt} />}
           {tags.length > 0 && (
             <Detail.Metadata.TagList title="Tags">
               {tags.map((tag) => (
