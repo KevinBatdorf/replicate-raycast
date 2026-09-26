@@ -1,15 +1,25 @@
-# Replicate API Raycast Extension
+# Replicate
 
-Run generative AI models via Replicate.
+Run Replicate's AI models from Raycast.
 
-Run models, view your prediction history, and more. To get started, create a Replicate account and get an API token here (required): https://replicate.com
+## Setup
 
-Source repo: https://github.com/KevinBatdorf/replicate-raycast
+1. Create an API token at [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens).
+2. Paste it into the extension's API Token preference.
+3. Using Replicate models in Raycast AI needs Raycast Pro.
 
-## Features
+## Use cases
 
-- Use Replicate's image, image-editing and text models right in Raycast AI's model picker (requires Raycast Pro)
-- Ask any Raycast AI chat to make or edit an image with `@replicate`
-- Choose which models Raycast AI offers, and set per-model defaults, with Raycast AI Models
-- Run any Replicate model from a form built from its inputs
-- View your predictions, with generated images saved on your computer
+- **Chat with a Replicate model.** Pick an image, editing or text model in Raycast AI's model picker. Image models reply with the image, and "make it bluer" edits the last one.
+- **Make images from any chat.** Ask any model: `@replicate draw a fox in watercolour`.
+- **Run any model directly.** Open Run a Model, pick a model and fill in its inputs.
+
+## Tools
+
+`@replicate` gives Raycast AI these tools:
+
+- **List Image Models**: the image models in your picker, and your default.
+- **Search Models**: finds image models across Replicate, and asks before running one outside your picker.
+- **Describe Model**: a model's inputs, like seed or output format.
+- **Start Image Generation**: runs a model, and returns the image if it's done within 5 seconds.
+- **Check Image Generation**: waits for a slower run to finish.
