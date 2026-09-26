@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePromise } from "@raycast/utils";
 import { Prediction, PredictionResponse } from "../types";
-import { replicateFetch } from "../lib/replicate";
+import { getPrediction, replicateFetch } from "../lib/replicate";
 import { POLL_INTERVAL_MS, isRunning } from "../utils/status";
 
 const MAX_POLLED = 5;
@@ -20,27 +20,33 @@ export const usePredictions = () => {
     [],
   );
 
-  const { data, mutate } = result;
-  const running = (data ?? []).filter(isRunning).slice(0, MAX_POLLED);
-  const ids = running.map((prediction) => prediction.id).join(",");
+  // Kept apart from the paged data: mutating it cancels whichever page is still loading.
+  const [live, setLive] = useState<Record<string, Prediction>>({});
+  const predictions = (result.data ?? []).map((prediction) => live[prediction.id] ?? prediction);
+  const ids = predictions
+    .filter(isRunning)
+    .slice(0, MAX_POLLED)
+    .map((prediction) => prediction.id)
+    .join(",");
 
   useEffect(() => {
     if (!ids) return;
-
     const timer = setTimeout(async () => {
-      const updated = await Promise.all(ids.split(",").map((id) => replicateFetch<Prediction>(`/predictions/${id}`)));
-      const byId = new Map(updated.map((prediction) => [prediction.id, prediction]));
-
-      // Revalidating would refetch page one and drop everything the user scrolled to.
-      await mutate(Promise.resolve(), {
-        optimisticUpdate: (current: Prediction[] | undefined) =>
-          (current ?? []).map((prediction) => byId.get(prediction.id) ?? prediction),
-        shouldRevalidateAfter: false,
-      });
+      try {
+        const updated = await Promise.all(ids.split(",").map(getPrediction));
+        setLive((current) => ({ ...current, ...Object.fromEntries(updated.map((p) => [p.id, p])) }));
+      } catch {
+        // A failed poll leaves the last known status; the next one tries again.
+        setLive((current) => ({ ...current }));
+      }
     }, POLL_INTERVAL_MS);
-
     return () => clearTimeout(timer);
-  }, [ids, mutate]);
+  }, [ids, live]);
 
-  return result;
+  const revalidate = () => {
+    setLive({});
+    return result.revalidate();
+  };
+
+  return { ...result, data: result.data ? predictions : undefined, revalidate };
 };

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Action, ActionPanel, Color, Icon, List, openCommandPreferences } from "@raycast/api";
 import { fileURLToPath } from "node:url";
 import { useSavedOutputs } from "../hooks/useSavedOutputs";
@@ -17,7 +16,6 @@ type Props = {
   revalidate: () => void;
 };
 export const PredictionList = ({ predictions, isLoading, error, pagination, revalidate }: Props) => {
-  const [selected, setSelected] = useState<string | null>(null);
   const { saved } = useSavedOutputs();
 
   if (error) {
@@ -39,14 +37,7 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
   }
 
   return (
-    <List
-      isShowingDetail
-      isLoading={isLoading}
-      pagination={pagination}
-      selectedItemId={selected ?? undefined}
-      onSelectionChange={setSelected}
-      searchBarPlaceholder="Search your prompts"
-    >
+    <List isShowingDetail isLoading={isLoading} pagination={pagination} searchBarPlaceholder="Search your prompts">
       <List.EmptyView
         icon={{ source: "🚀" }}
         title="No Predictions Found"
