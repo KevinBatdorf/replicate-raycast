@@ -1,8 +1,19 @@
-import { Action, ActionPanel, getPreferenceValues, Icon, List, openExtensionPreferences } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  getPreferenceValues,
+  Icon,
+  List,
+  openExtensionPreferences,
+  showToast,
+  Toast,
+} from "@raycast/api";
 import { usePromise } from "@raycast/utils";
-import { ReactElement } from "react";
+import { ReactElement, useState } from "react";
 import { useAIModels } from "../hooks/useAIModels";
 import { fullModel, popularModelIds } from "../lib/ai-models";
+import { chatShape } from "../lib/chat";
+import { errorMessage, modelId, searchModels } from "../lib/replicate";
 import { Model } from "../types";
 import { ModelList } from "./ModelList";
 
@@ -12,6 +23,7 @@ const loadDetails = async (ids: string[]) => {
 };
 
 export const ManageAIModels = () => {
+  const [query, setQuery] = useState("");
   const { popularModels } = getPreferenceValues<Preferences>();
   const { added, hidden, isLoading, revalidate, add, remove, hide, unhide } = useAIModels();
   const { data: popular = [], isLoading: loadingPopular } = usePromise(popularModelIds, [], {
@@ -19,7 +31,35 @@ export const ManageAIModels = () => {
   });
 
   const shownPopular = popularModels ? popular.filter((id) => !added.includes(id) && !hidden.includes(id)) : [];
-  const { data: details = {} } = usePromise(loadDetails, [[...added, ...shownPopular, ...hidden]]);
+  const listed = [...added, ...shownPopular, ...hidden];
+  const { data: details = {} } = usePromise(loadDetails, [listed]);
+
+  const search = query.trim();
+  const { data: results = [], isLoading: searching } = usePromise(searchModels, [search], {
+    execute: Boolean(search),
+  });
+  const found = search ? results.filter((model) => !listed.includes(modelId(model))) : [];
+
+  const needle = search.toLowerCase();
+  const matches = (id: string) =>
+    !needle || id.toLowerCase().includes(needle) || Boolean(details[id]?.description?.toLowerCase().includes(needle));
+
+  const addResult = async (id: string) => {
+    try {
+      if (!chatShape(await fullModel(id))) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Can't Add to Raycast AI",
+          message: `${id} returns output that a chat can't show, such as video or audio.`,
+        });
+        return;
+      }
+    } catch (error) {
+      await showToast({ style: Toast.Style.Failure, title: "Could Not Load the Model", message: errorMessage(error) });
+      return;
+    }
+    await add(id);
+  };
 
   const browse = (
     <Action.Push icon={Icon.MagnifyingGlass} title="Browse Models" target={<ModelList />} onPop={revalidate} />
@@ -32,25 +72,24 @@ export const ManageAIModels = () => {
     </>
   );
 
-  const item = (id: string, actions: ReactElement) => {
-    const model = details[id];
-    return (
-      <List.Item
-        key={id}
-        icon={model?.cover_image_url ?? Icon.Box}
-        title={id}
-        subtitle={model?.description}
-        accessories={model?.is_official ? [{ tag: "Official" }] : undefined}
-        actions={actions}
-      />
-    );
-  };
+  const item = (id: string, model: Model | undefined, actions: ReactElement) => (
+    <List.Item
+      key={id}
+      icon={model?.cover_image_url ?? Icon.Box}
+      title={id}
+      subtitle={model?.description}
+      accessories={model?.is_official ? [{ tag: "Official" }] : undefined}
+      actions={actions}
+    />
+  );
 
   return (
     <List
-      isLoading={isLoading || loadingPopular}
+      isLoading={isLoading || loadingPopular || searching}
       navigationTitle="Manage AI Models"
-      searchBarPlaceholder="Filter models in Raycast AI"
+      searchBarPlaceholder="Search Replicate models"
+      onSearchTextChange={setQuery}
+      throttle
       actions={
         <ActionPanel>
           {browse}
@@ -60,14 +99,19 @@ export const ManageAIModels = () => {
     >
       <List.EmptyView
         icon={Icon.Stars}
-        title="No Models in Raycast AI"
-        description="Browse Replicate's models and add the ones you want in the model picker."
+        title={search ? "No Models Found" : "No Models in Raycast AI"}
+        description={
+          search
+            ? "Try a different search, or browse Replicate's collections."
+            : "Search Replicate's models and add the ones you want in the model picker."
+        }
         actions={<ActionPanel>{browse}</ActionPanel>}
       />
       <List.Section title="Added by You" subtitle="Stay until you remove them">
-        {added.map((id) =>
+        {added.filter(matches).map((id) =>
           item(
             id,
+            details[id],
             <ActionPanel>
               <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(id)} />
               {common(id)}
@@ -76,9 +120,10 @@ export const ManageAIModels = () => {
         )}
       </List.Section>
       <List.Section title="Popular" subtitle="Refreshed daily">
-        {shownPopular.map((id) =>
+        {shownPopular.filter(matches).map((id) =>
           item(
             id,
+            details[id],
             <ActionPanel>
               <Action icon={Icon.EyeDisabled} title="Hide from Raycast AI" onAction={() => hide(id)} />
               <Action icon={Icon.Pin} title="Keep in Raycast AI" onAction={() => add(id)} />
@@ -88,15 +133,29 @@ export const ManageAIModels = () => {
         )}
       </List.Section>
       <List.Section title="Hidden">
-        {hidden.map((id) =>
+        {hidden.filter(matches).map((id) =>
           item(
             id,
+            details[id],
             <ActionPanel>
               <Action icon={Icon.Eye} title="Show in Raycast AI" onAction={() => unhide(id)} />
               {common(id)}
             </ActionPanel>,
           ),
         )}
+      </List.Section>
+      <List.Section title="Replicate">
+        {found.map((model) => {
+          const id = modelId(model);
+          return item(
+            id,
+            model,
+            <ActionPanel>
+              <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => addResult(id)} />
+              {common(id)}
+            </ActionPanel>,
+          );
+        })}
       </List.Section>
     </List>
   );
