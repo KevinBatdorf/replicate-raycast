@@ -118,7 +118,6 @@ export const ManageAIModels = () => {
   return (
     <List
       isLoading={isLoading || loadingPopular || searching}
-      navigationTitle="Raycast AI Models"
       searchBarPlaceholder="Search Replicate models"
       onSearchTextChange={setQuery}
       throttle
@@ -130,7 +129,7 @@ export const ManageAIModels = () => {
     >
       {search && searching ? (
         <List.EmptyView icon={Icon.MagnifyingGlass} title="Searching Replicate…" />
-      ) : (
+      ) : isLoading || loadingPopular ? null : (
         <List.EmptyView
           icon={Icon.Stars}
           title={search ? "No Models Found" : "No Models in Raycast AI"}

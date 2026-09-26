@@ -12,7 +12,7 @@ export default function Command() {
           title="Run a Model"
           actions={
             <ActionPanel>
-              <Action.Push title="Show Details" target={<ModelList />} />
+              <Action.Push icon={Icon.Play} title="Run a Model" target={<ModelList />} />
             </ActionPanel>
           }
         />
@@ -41,7 +41,7 @@ export default function Command() {
           accessories={[{ icon: Icon.ArrowNe }]}
           actions={
             <ActionPanel>
-              <Action.OpenInBrowser title="Show Details" url="https://replicate.com/explore" />
+              <Action.OpenInBrowser url="https://replicate.com/explore" />
             </ActionPanel>
           }
         />

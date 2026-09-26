@@ -11,7 +11,7 @@ Run Replicate's AI models from Raycast.
 ## Use cases
 
 - **Chat with a Replicate model.** Pick an image, editing or text model in Raycast AI's model picker. Image models reply with the image, and "make it bluer" edits the last one.
-- **Make images from any chat.** Ask any model: `@replicate draw a fox in watercolour`.
+- **Make images from any chat.** Ask any model: `@replicate draw a fox in watercolor`.
 - **Run any model directly.** Open Run a Model, pick a model and fill in its inputs.
 
 ## Tools

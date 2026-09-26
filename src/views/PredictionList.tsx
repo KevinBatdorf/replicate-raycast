@@ -38,16 +38,18 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
 
   return (
     <List isShowingDetail isLoading={isLoading} pagination={pagination} searchBarPlaceholder="Search your prompts">
-      <List.EmptyView
-        icon={{ source: "🚀" }}
-        title="No Predictions Found"
-        description="Replicate deletes outputs about an hour after they run, so only images saved on this computer stay. Find models to run at replicate.com/explore"
-        actions={
-          <ActionPanel>
-            <Action.OpenInBrowser icon={Icon.Globe} url="https://replicate.com/explore" />
-          </ActionPanel>
-        }
-      />
+      {!isLoading && (
+        <List.EmptyView
+          icon={{ source: "🚀" }}
+          title="No Predictions Found"
+          description="Replicate deletes outputs about an hour after they run, so only images saved on this computer stay. Find models to run at replicate.com/explore"
+          actions={
+            <ActionPanel>
+              <Action.OpenInBrowser icon={Icon.Globe} url="https://replicate.com/explore" />
+            </ActionPanel>
+          }
+        />
+      )}
       {predictions?.map((prediction) => {
         const items = predictionItems(prediction, saved);
         const image = firstImage(items);

@@ -22,7 +22,7 @@ export const PredictionActions = ({ prediction, items, revalidate }: Props) => {
     try {
       await cancelPrediction(prediction.id);
       toast.style = Toast.Style.Success;
-      toast.title = "Prediction Cancelled";
+      toast.title = "Prediction Canceled";
       revalidate();
     } catch (error) {
       toast.style = Toast.Style.Failure;

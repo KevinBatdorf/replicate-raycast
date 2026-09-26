@@ -88,7 +88,7 @@ const statusLine = (prediction: Prediction) => {
     case "processing":
       return "Running...";
     case "canceled":
-      return "This prediction was cancelled.";
+      return "This prediction was canceled.";
     case "failed":
       return prediction.error ?? "This prediction failed.";
     default:

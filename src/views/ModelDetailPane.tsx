@@ -21,7 +21,7 @@ export const ModelDetailPane = ({ model, full }: Props) => {
   const links = [
     details.github_url ? `[Source](${details.github_url})` : undefined,
     details.paper_url ? `[Paper](${details.paper_url})` : undefined,
-    details.license_url ? `[Licence](${details.license_url})` : undefined,
+    details.license_url ? `[License](${details.license_url})` : undefined,
   ].filter(Boolean);
 
   const markdown = [

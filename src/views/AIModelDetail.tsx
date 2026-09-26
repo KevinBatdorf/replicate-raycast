@@ -77,7 +77,7 @@ export const AIModelDetail = ({ id, popular }: Props) => {
           {(model?.github_url || model?.paper_url || model?.license_url) && <Detail.Metadata.Separator />}
           {model?.github_url && <Detail.Metadata.Link title="Source" text="GitHub" target={model.github_url} />}
           {model?.paper_url && <Detail.Metadata.Link title="Paper" text="Read" target={model.paper_url} />}
-          {model?.license_url && <Detail.Metadata.Link title="Licence" text="View" target={model.license_url} />}
+          {model?.license_url && <Detail.Metadata.Link title="License" text="View" target={model.license_url} />}
         </Detail.Metadata>
       }
       actions={
