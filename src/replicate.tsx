@@ -37,6 +37,16 @@ export default function Command() {
         />
         <List.Item
           icon={{ source: "replicate.png" }}
+          title="Explore Models"
+          accessories={[{ icon: Icon.ArrowNe }]}
+          actions={
+            <ActionPanel>
+              <Action.OpenInBrowser title="Show Details" url="https://replicate.com/explore" />
+            </ActionPanel>
+          }
+        />
+        <List.Item
+          icon={{ source: "replicate.png" }}
           title="Dashboard"
           accessories={[{ icon: Icon.ArrowNe }]}
           actions={
