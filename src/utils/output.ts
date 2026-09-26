@@ -22,8 +22,6 @@ export const kindLabel = (kind: FileOutput["kind"]) => KIND_LABELS[kind];
 export const extensionFor = (mediaType?: string | null) =>
   mediaType?.split(";")[0].split("/")[1]?.replace("jpeg", "jpg").replace(/\+.*/, "") || undefined;
 
-const CHAT_IMAGE_WIDTH = 200;
-
 // Raycast sizes markdown images through query params, and delivery URLs are already signed.
 export const sizedImage = (url: string, width: number) =>
   `${url}${url.includes("?") ? "&" : "?"}raycast-width=${width}`;
@@ -34,10 +32,6 @@ export const altText = (prompt: string) =>
     .replace(/[[\]"<>]/g, "")
     .trim()
     .slice(0, 80);
-
-// AI Chat ignores Raycast's size hint on markdown images, so chat replies size the image in HTML.
-export const chatImage = (url: string, prompt: string) =>
-  `<img src="${url}" alt="${altText(prompt)}" width="${CHAT_IMAGE_WIDTH}">`;
 
 const asUrl = (value: string) => {
   try {

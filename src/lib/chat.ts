@@ -1,6 +1,7 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
-import { chatImage, extensionFor, outputItems } from "../utils/output";
+import { extensionFor, outputItems } from "../utils/output";
+import { chatImage } from "./images";
 import { ReplicateError, uploadBytes } from "./replicate";
 
 export type ChatShape = {
@@ -77,7 +78,8 @@ export const chatCapabilities = (shape: ChatShape): AI.RegisteredModel["capabili
 
 type ImageRef = { data: string | Uint8Array | ArrayBuffer | URL; mediaType: string };
 
-const REPLY_IMAGE = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)|<img[^>]*\ssrc="(https?:\/\/[^"]+)"/g;
+// A reply's image is a local preview linking to the full-size file Replicate can fetch.
+const REPLY_IMAGE = /\[!\[[^\]]*\]\([^)\s]*\)\]\((https?:\/\/[^)\s]+)\)|!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g;
 
 const textOf = (message: AI.ModelMessage) => {
   if (message.role === "system") return message.content;
@@ -153,19 +155,20 @@ export const chatInput = async (model: Model, shape: ChatShape, request: AI.Mode
   return { input, prompt };
 };
 
-export const chatReply = (prediction: Prediction, prompt: string, shape: ChatShape) => {
+export const chatReply = async (prediction: Prediction, prompt: string, shape: ChatShape) => {
   const items = outputItems(prediction.output);
   if (!items.length) throw new Error("The model finished without returning anything.");
-  return items
-    .map((item) => {
+  const parts = await Promise.all(
+    items.map((item, index) => {
       if (item.kind === "text") return item.text;
       // Some image URLs have no extension, so an image model's plain file is still its image.
       if (item.kind === "image" || (item.kind === "file" && shape.output === "image")) {
-        return chatImage(item.url, prompt);
+        return chatImage(item.url, { name: `${prediction.id}-${index}`, prompt });
       }
       return `[${item.kind === "file" ? "Open file" : `Play ${item.kind}`}](${item.url})`;
-    })
-    .join("\n\n");
+    }),
+  );
+  return parts.join("\n\n");
 };
 
 const parseEvent = (block: string) => {

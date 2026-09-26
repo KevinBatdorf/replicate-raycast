@@ -1,8 +1,6 @@
-import { Tool, environment, getPreferenceValues } from "@raycast/api";
-import { mkdir } from "node:fs/promises";
-import { extname, join } from "node:path";
-import { createPrediction, downloadFile, waitForPrediction } from "../lib/replicate";
-import { chatImage } from "../utils/output";
+import { Tool, getPreferenceValues } from "@raycast/api";
+import { chatImage } from "../lib/images";
+import { createPrediction, waitForPrediction } from "../lib/replicate";
 
 type Input = {
   /**
@@ -86,21 +84,15 @@ export default async function tool(input: Input) {
     throw new Error(`${model} did not return an image. It may not be an image model.`);
   }
 
-  const directory = join(environment.supportPath, "generations");
-  await mkdir(directory, { recursive: true });
-  // Replicate deletes outputs about an hour after they run; the copy mustn't delay the reply.
-  void Promise.all(
-    urls.map((url, index) =>
-      downloadFile(url, join(directory, `${prediction.id}-${index}${extname(new URL(url).pathname)}`)).catch(
-        () => undefined,
-      ),
-    ),
+  const markdown = await Promise.all(
+    urls.map((url, index) => chatImage(url, { name: `${prediction.id}-${index}`, prompt: input.prompt })),
   );
 
   return {
-    markdown: urls.map((url) => chatImage(url, input.prompt)).join("\n\n"),
+    markdown: markdown.join("\n\n"),
     // A tool can't show an image itself, so the chat model has to repeat the markdown.
-    instruction: "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
+    instruction:
+      "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
     model,
     predictionUrl: `https://replicate.com/p/${prediction.id}`,
   };
