@@ -93,6 +93,7 @@ export default async function tool(input: Input) {
     id: prediction.id,
     status: prediction.status,
     model,
-    instruction: "Tell the user in a few words that the image is on its way, then call check-generation with this id.",
+    instruction:
+      "Call check-generation with this id now, before replying. Replying ends your turn and leaves the image unfinished.",
   };
 }

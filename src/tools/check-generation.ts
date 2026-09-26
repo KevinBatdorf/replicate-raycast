@@ -28,7 +28,7 @@ export default async function tool({ id }: Input) {
     return {
       status: prediction.status,
       progress: percent ? `${percent}%` : undefined,
-      instruction: "Still running. Tell the user in a few words, then call check-generation again with the same id.",
+      instruction: "Still running. Call check-generation again with the same id now, before replying.",
     };
   }
   if (prediction.status !== "succeeded") {
