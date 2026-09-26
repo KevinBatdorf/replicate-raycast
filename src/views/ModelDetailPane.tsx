@@ -25,6 +25,7 @@ export const ModelDetailPane = ({ model, full }: Props) => {
   ].filter(Boolean);
 
   const markdown = [
+    `**${details.owner}/${details.name}**`,
     image ? `![${details.name}](${sizedImage(image, IMAGE_WIDTH)})` : undefined,
     details.description,
     prompt ? `**Example prompt** — ${prompt}` : undefined,
