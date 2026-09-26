@@ -1,7 +1,6 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
-import { extensionFor, outputItems } from "../utils/output";
-import { chatImage } from "./images";
+import { altText, extensionFor, outputItems } from "../utils/output";
 import { ReplicateError, uploadBytes } from "./replicate";
 
 export type ChatShape = {
@@ -78,8 +77,7 @@ export const chatCapabilities = (shape: ChatShape): AI.RegisteredModel["capabili
 
 type ImageRef = { data: string | Uint8Array | ArrayBuffer | URL; mediaType: string };
 
-// A reply's image is a local preview linking to the full-size file Replicate can fetch.
-const REPLY_IMAGE = /\[!\[[^\]]*\]\([^)\s]*\)\]\((https?:\/\/[^)\s]+)\)|!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g;
+const MARKDOWN_IMAGE = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g;
 
 const textOf = (message: AI.ModelMessage) => {
   if (message.role === "system") return message.content;
@@ -96,8 +94,7 @@ const imageIn = (message: AI.ModelMessage): ImageRef | undefined => {
     if (part.type === "file" && part.mediaType.startsWith("image/")) return part;
   }
   if (message.role === "user") return undefined;
-  const match = [...textOf(message).matchAll(REPLY_IMAGE)].at(-1);
-  const url = match?.[1] ?? match?.[2];
+  const url = [...textOf(message).matchAll(MARKDOWN_IMAGE)].at(-1)?.[1];
   return url ? { data: url, mediaType: "image/*" } : undefined;
 };
 
@@ -155,20 +152,19 @@ export const chatInput = async (model: Model, shape: ChatShape, request: AI.Mode
   return { input, prompt };
 };
 
-export const chatReply = async (prediction: Prediction, prompt: string, shape: ChatShape) => {
+export const chatReply = (prediction: Prediction, prompt: string, shape: ChatShape) => {
   const items = outputItems(prediction.output);
   if (!items.length) throw new Error("The model finished without returning anything.");
-  const parts = await Promise.all(
-    items.map((item, index) => {
+  return items
+    .map((item) => {
       if (item.kind === "text") return item.text;
       // Some image URLs have no extension, so an image model's plain file is still its image.
       if (item.kind === "image" || (item.kind === "file" && shape.output === "image")) {
-        return chatImage(item.url, { name: `${prediction.id}-${index}`, prompt });
+        return `![${altText(prompt)}](${item.url})`;
       }
       return `[${item.kind === "file" ? "Open file" : `Play ${item.kind}`}](${item.url})`;
-    }),
-  );
-  return parts.join("\n\n");
+    })
+    .join("\n\n");
 };
 
 const parseEvent = (block: string) => {

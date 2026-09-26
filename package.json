@@ -193,32 +193,6 @@
       "description": "List Replicate's most-run official image models in Raycast AI's model picker, refreshed daily. Models you add or chat with stay either way.",
       "default": true,
       "required": false
-    },
-    {
-      "name": "chatImageSize",
-      "type": "dropdown",
-      "title": "Chat Image Size",
-      "description": "How large images appear when you chat with a Replicate model. A smaller preview links to the full-size image. @replicate always shows the full size.",
-      "default": "320",
-      "required": false,
-      "data": [
-        {
-          "title": "Small (320px)",
-          "value": "320"
-        },
-        {
-          "title": "Medium (480px)",
-          "value": "480"
-        },
-        {
-          "title": "Large (640px)",
-          "value": "640"
-        },
-        {
-          "title": "Full size",
-          "value": "full"
-        }
-      ]
     }
   ],
   "dependencies": {

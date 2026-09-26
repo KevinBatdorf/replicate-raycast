@@ -66,7 +66,7 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
   yield status(seconds ? `Done in ${seconds.toFixed(1)}s.` : "Done.");
   yield { type: "reasoning-end", id: STATUS };
   yield { type: "text-start", id: ANSWER };
-  yield answer(await chatReply(finished, prompt, shape));
+  yield answer(chatReply(finished, prompt, shape));
   yield { type: "text-end", id: ANSWER };
   yield { type: "finish", finishReason: "stop" };
 };
