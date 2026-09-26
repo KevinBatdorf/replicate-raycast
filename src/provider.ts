@@ -3,7 +3,7 @@ import { fullModel, recordUse, registeredModels } from "./lib/ai-models";
 import { chatInput, chatReply, chatShape, streamOutput } from "./lib/chat";
 import { createPrediction, followPrediction, stillRunning } from "./lib/replicate";
 import { Prediction } from "./types";
-import { isRunning } from "./utils/status";
+import { isRunning, logPercent } from "./utils/status";
 
 const STATUS = "status";
 const ANSWER = "answer";
@@ -15,7 +15,7 @@ const answer = (text: string): AI.ModelStreamPart => ({ type: "text-delta", id: 
 const progress = (prediction: Prediction) => {
   if (prediction.status === "starting") return "Waiting for Replicate to start the model…";
   if (prediction.status !== "processing") return undefined;
-  const percent = [...(prediction.logs ?? "").matchAll(/(\d{1,3})%\|/g)].at(-1)?.[1];
+  const percent = logPercent(prediction.logs);
   return percent ? `Generating… ${percent}%` : "Generating…";
 };
 

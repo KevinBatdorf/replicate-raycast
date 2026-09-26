@@ -33,33 +33,52 @@
   ],
   "tools": [
     {
-      "name": "generate-image",
-      "title": "Generate Image",
-      "description": "Generate an image from a text prompt by running a model on Replicate, and save a copy of the result locally."
+      "name": "start-generation",
+      "title": "Start Image Generation",
+      "description": "Start generating an image from a text prompt by running a model on Replicate. Returns straight away with an id to pass to Check Image Generation."
+    },
+    {
+      "name": "check-generation",
+      "title": "Check Image Generation",
+      "description": "Check on an image started with Start Image Generation. Waits up to ten seconds, then returns the finished image, or its progress if it's still running."
     }
   ],
   "ai": {
     "modelProvider": "provider",
-    "instructions": "Show every generated image by replying with the `markdown` field from the generate-image result exactly as given; the user can't see an image any other way. Unless the user names a model, generate-image runs the default model from the extension's preferences, which is black-forest-labs/flux-schnell unless they changed it. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
+    "instructions": "Generating an image takes two tools. Call start-generation, then call check-generation with the id it returns, and keep calling check-generation until the image is done or fails; each check waits up to ten seconds. Between calls, tell the user in a few words that it's still working. When it's done, reply with the check's `markdown` field exactly as given: the user can't see the image any other way, and it links to the full-size file. Unless the user names a model, start-generation runs the default model from the extension's preferences, which is black-forest-labs/flux-schnell unless they changed it. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
         "mocks": {
-          "generate-image": {
-            "markdown": "![a cat riding a bicycle through Tokyo at night](https://replicate.delivery/abc123/out-0.webp)",
-            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
+          "start-generation": {
+            "id": "abc123",
+            "status": "starting",
             "model": "black-forest-labs/flux-schnell",
+            "instruction": "Tell the user in a few words that the image is on its way, then call check-generation with this id."
+          },
+          "check-generation": {
+            "status": "succeeded",
+            "markdown": "[![a cat riding a bicycle through Tokyo at night](file:///tmp/abc123-0-preview.jpg)](https://replicate.delivery/abc123/out-0.webp)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
             "predictionUrl": "https://replicate.com/p/abc123"
           }
         },
         "expected": [
           {
             "callsTool": {
-              "name": "generate-image",
+              "name": "start-generation",
               "arguments": {
                 "prompt": {
                   "includes": "cat"
                 }
+              }
+            }
+          },
+          {
+            "callsTool": {
+              "name": "check-generation",
+              "arguments": {
+                "id": "abc123"
               }
             }
           },
@@ -71,19 +90,33 @@
       {
         "input": "@replicate make me a 16:9 desktop wallpaper of a foggy pine forest",
         "mocks": {
-          "generate-image": {
-            "markdown": "![a foggy pine forest](https://replicate.delivery/def456/out-0.webp)",
-            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
+          "start-generation": {
+            "id": "def456",
+            "status": "starting",
             "model": "black-forest-labs/flux-schnell",
+            "instruction": "Tell the user in a few words that the image is on its way, then call check-generation with this id."
+          },
+          "check-generation": {
+            "status": "succeeded",
+            "markdown": "[![a foggy pine forest](file:///tmp/def456-0-preview.jpg)](https://replicate.delivery/def456/out-0.webp)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
             "predictionUrl": "https://replicate.com/p/def456"
           }
         },
         "expected": [
           {
             "callsTool": {
-              "name": "generate-image",
+              "name": "start-generation",
               "arguments": {
                 "aspectRatio": "16:9"
+              }
+            }
+          },
+          {
+            "callsTool": {
+              "name": "check-generation",
+              "arguments": {
+                "id": "def456"
               }
             }
           }
@@ -92,19 +125,33 @@
       {
         "input": "@replicate generate a watercolour fox with google/nano-banana",
         "mocks": {
-          "generate-image": {
-            "markdown": "![a watercolour fox](https://replicate.delivery/ghi789/out-0.png)",
-            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
+          "start-generation": {
+            "id": "ghi789",
+            "status": "starting",
             "model": "google/nano-banana",
+            "instruction": "Tell the user in a few words that the image is on its way, then call check-generation with this id."
+          },
+          "check-generation": {
+            "status": "succeeded",
+            "markdown": "[![a watercolour fox](file:///tmp/ghi789-0-preview.jpg)](https://replicate.delivery/ghi789/out-0.png)",
+            "instruction": "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
             "predictionUrl": "https://replicate.com/p/ghi789"
           }
         },
         "expected": [
           {
             "callsTool": {
-              "name": "generate-image",
+              "name": "start-generation",
               "arguments": {
                 "model": "google/nano-banana"
+              }
+            }
+          },
+          {
+            "callsTool": {
+              "name": "check-generation",
+              "arguments": {
+                "id": "ghi789"
               }
             }
           }

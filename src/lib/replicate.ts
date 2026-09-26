@@ -61,6 +61,8 @@ export const downloadFile = async (url: string, destination: string) => {
   return path;
 };
 
+export const getPrediction = (id: string) => replicateFetch<Prediction>(`/predictions/${id}`);
+
 export const cancelPrediction = (id: string) =>
   replicateFetch<unknown>(`/predictions/${id}/cancel`, { method: "POST" });
 
@@ -160,7 +162,7 @@ export async function* followPrediction(
   yield prediction;
   while (isRunning(prediction) && Date.now() < deadline) {
     await sleep(interval);
-    prediction = await replicateFetch<Prediction>(`/predictions/${prediction.id}`);
+    prediction = await getPrediction(prediction.id);
     yield prediction;
   }
 }

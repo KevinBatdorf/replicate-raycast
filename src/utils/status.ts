@@ -14,3 +14,5 @@ export const STATUS_COLORS: Record<PredictionStatus, Color> = {
   failed: Color.Red,
   canceled: Color.SecondaryText,
 };
+
+export const logPercent = (logs?: string | null) => [...(logs ?? "").matchAll(/(\d{1,3})%\|/g)].at(-1)?.[1];

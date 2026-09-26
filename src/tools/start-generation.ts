@@ -1,7 +1,5 @@
 import { Tool, getPreferenceValues } from "@raycast/api";
-import { chatImage } from "../lib/images";
-import { createPrediction, stillRunning, waitForPrediction } from "../lib/replicate";
-import { isRunning } from "../utils/status";
+import { createPrediction } from "../lib/replicate";
 
 type Input = {
   /**
@@ -23,8 +21,6 @@ type Input = {
    */
   count?: number;
 };
-
-const WAIT_SECONDS = 60;
 
 const resolveModel = (model?: string) => {
   const { defaultModel } = getPreferenceValues<Preferences>();
@@ -51,51 +47,28 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => {
 };
 
 /**
- * Generate an image from a text prompt by running a model on Replicate.
+ * Start generating an image from a text prompt on Replicate. Returns at once with an id for check-generation.
  */
 export default async function tool(input: Input) {
   const model = resolveModel(input.model);
   const [owner, name] = model.split("/");
-  const [, version] = name.split(":");
+  const [modelName, version] = name.split(":");
 
-  // Sync mode still returns an unfinished prediction when the wait elapses.
-  const prediction = await waitForPrediction(
-    await createPrediction({
-      owner,
-      name: name.split(":")[0],
-      version,
-      wait: WAIT_SECONDS,
-      input: {
-        prompt: input.prompt,
-        ...(input.aspectRatio ? { aspect_ratio: input.aspectRatio } : {}),
-        ...(input.count && input.count > 1 ? { num_outputs: input.count } : {}),
-      },
-    }),
-  );
-
-  if (isRunning(prediction)) throw stillRunning(prediction);
-  if (prediction.status !== "succeeded") {
-    throw new Error(prediction.error ?? `The prediction ${prediction.status}.`);
-  }
-
-  const urls = (Array.isArray(prediction.output) ? prediction.output : [prediction.output]).filter(
-    (output): output is string => typeof output === "string" && output.startsWith("http"),
-  );
-
-  if (!urls.length) {
-    throw new Error(`${model} did not return an image. It may not be an image model.`);
-  }
-
-  const markdown = await Promise.all(
-    urls.map((url, index) => chatImage(url, { name: `${prediction.id}-${index}`, prompt: input.prompt })),
-  );
+  const prediction = await createPrediction({
+    owner,
+    name: modelName,
+    version,
+    input: {
+      prompt: input.prompt,
+      ...(input.aspectRatio ? { aspect_ratio: input.aspectRatio } : {}),
+      ...(input.count && input.count > 1 ? { num_outputs: input.count } : {}),
+    },
+  });
 
   return {
-    markdown: markdown.join("\n\n"),
-    // A tool can't show an image itself, so the chat model has to repeat the markdown.
-    instruction:
-      "Reply with the markdown field exactly as given. It is the only way the user sees the image, and it links to the full-size file.",
+    id: prediction.id,
+    status: prediction.status,
     model,
-    predictionUrl: `https://replicate.com/p/${prediction.id}`,
+    instruction: "Tell the user in a few words that the image is on its way, then call check-generation with this id.",
   };
 }
