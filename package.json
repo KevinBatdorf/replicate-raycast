@@ -50,7 +50,7 @@
   ],
   "ai": {
     "modelProvider": "provider",
-    "instructions": "Generating an image takes three steps. Unless the user names a model, call list-models and use its default, or when there's no default pick the model whose description best fits the request. Then call start-generation, and call check-generation with the id it returns, again and again, until the image is done or fails; each check waits up to ten seconds. Don't reply to the user between these calls: a reply ends your turn and the image never arrives. When it's done, reply with the check's `markdown` field exactly as given: the user can't see the image any other way. To change an existing image, pick a model that edits images and pass the image's URL as `image`. Replicate models are written as owner/name; never invent one.",
+    "instructions": "Generating an image takes up to three steps. Unless the user names a model, call list-models and use its default, or when there's no default pick the model whose description best fits the request. Then call start-generation. If its result has `markdown`, the image is already done. Otherwise call check-generation with the id it returns, again and again, until the image is done or fails; each check waits up to ten seconds. Don't reply to the user between these calls: a reply ends your turn and the image never arrives. When it's done, reply with the `markdown` field exactly as given: the user can't see the image any other way. To change an existing image, pick a model that edits images and pass the image's URL as `image`. Replicate models are written as owner/name; never invent one.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
@@ -81,7 +81,7 @@
             "id": "abc123",
             "status": "starting",
             "model": "black-forest-labs/flux-schnell",
-            "instruction": "Call check-generation with this id now, before replying. Replying ends your turn and leaves the image unfinished."
+            "instruction": "Still running. Call check-generation with this id now, before replying: a reply ends your turn and the image never arrives."
           },
           "check-generation": {
             "status": "succeeded",
@@ -143,7 +143,7 @@
             "id": "def456",
             "status": "starting",
             "model": "black-forest-labs/flux-schnell",
-            "instruction": "Call check-generation with this id now, before replying. Replying ends your turn and leaves the image unfinished."
+            "instruction": "Still running. Call check-generation with this id now, before replying: a reply ends your turn and the image never arrives."
           },
           "check-generation": {
             "status": "succeeded",
@@ -200,7 +200,7 @@
             "id": "ghi789",
             "status": "starting",
             "model": "google/nano-banana",
-            "instruction": "Call check-generation with this id now, before replying. Replying ends your turn and leaves the image unfinished."
+            "instruction": "Still running. Call check-generation with this id now, before replying: a reply ends your turn and the image never arrives."
           },
           "check-generation": {
             "status": "succeeded",

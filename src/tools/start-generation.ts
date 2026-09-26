@@ -1,7 +1,8 @@
 import { Tool, getPreferenceValues } from "@raycast/api";
-import { fullModel } from "../lib/ai-models";
+import { chatDefaults, fullModel } from "../lib/ai-models";
 import { chatShape } from "../lib/chat";
-import { createPrediction } from "../lib/replicate";
+import { generationResult } from "../lib/generation";
+import { createPrediction, RAYCAST_AI_CANCEL_AFTER } from "../lib/replicate";
 
 type Input = {
   /**
@@ -55,8 +56,12 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => {
   };
 };
 
+// Long enough for a fast model to finish here, so most images need no check at all.
+const START_WAIT_SECONDS = 5;
+
 /**
- * Start generating an image from a text prompt on Replicate. Returns at once with an id for check-generation.
+ * Start generating an image from a text prompt on Replicate. Waits up to five seconds, then returns the
+ * image if it's done, or an id for check-generation.
  */
 export default async function tool(input: Input) {
   const model = resolveModel(input.model);
@@ -79,7 +84,10 @@ export default async function tool(input: Input) {
     name: modelName,
     version,
     official: details?.is_official,
+    wait: START_WAIT_SECONDS,
+    cancelAfter: RAYCAST_AI_CANCEL_AFTER,
     input: {
+      ...(await chatDefaults(`${owner}/${modelName}`)),
       [shape?.prompt ?? "prompt"]: input.prompt,
       ...(input.image && shape?.image
         ? { [shape.image.name]: shape.image.multiple ? [input.image] : input.image }
@@ -89,11 +97,5 @@ export default async function tool(input: Input) {
     },
   });
 
-  return {
-    id: prediction.id,
-    status: prediction.status,
-    model,
-    instruction:
-      "Call check-generation with this id now, before replying. Replying ends your turn and leaves the image unfinished.",
-  };
+  return { model, ...(await generationResult(prediction)) };
 }

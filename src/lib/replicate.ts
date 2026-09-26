@@ -101,6 +101,9 @@ export const searchModels = async (query: string) => {
 
 export const getModel = (owner: string, name: string) => replicateFetch<Model>(`/models/${owner}/${name}`);
 
+// Stopping a chat doesn't stop its prediction, so runs from Raycast AI cap themselves.
+export const RAYCAST_AI_CANCEL_AFTER = "5m";
+
 export const createPrediction = ({
   owner,
   name,
@@ -108,6 +111,7 @@ export const createPrediction = ({
   official,
   input,
   wait,
+  cancelAfter,
 }: {
   owner: string;
   name: string;
@@ -115,12 +119,16 @@ export const createPrediction = ({
   official?: boolean;
   input: Record<string, unknown>;
   wait?: number;
+  cancelAfter?: string;
 }) => {
   // Official models can still list a latest version, but they run and bill on their own endpoint.
   const pinned = version && !official;
   return replicateFetch<Prediction>(pinned ? "/predictions" : `/models/${owner}/${name}/predictions`, {
     method: "POST",
-    headers: wait ? { Prefer: `wait=${wait}` } : undefined,
+    headers: {
+      ...(wait ? { Prefer: `wait=${wait}` } : {}),
+      ...(cancelAfter ? { "Cancel-After": cancelAfter } : {}),
+    },
     body: JSON.stringify({ ...(pinned ? { version } : {}), input }),
   });
 };
