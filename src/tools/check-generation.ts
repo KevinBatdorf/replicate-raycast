@@ -1,3 +1,4 @@
+import { saveOutputs } from "../lib/history";
 import { getPrediction, waitForPrediction } from "../lib/replicate";
 import { altText } from "../utils/output";
 import { isRunning, logPercent } from "../utils/status";
@@ -42,6 +43,7 @@ export default async function tool({ id }: Input) {
   }
 
   const alt = altText(prediction.input?.prompt ?? "");
+  await saveOutputs(prediction);
 
   return {
     status: prediction.status,

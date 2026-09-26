@@ -1,6 +1,7 @@
 import { AI, getPreferenceValues } from "@raycast/api";
 import { fullModel, recordUse, registeredModels } from "./lib/ai-models";
 import { chatInput, chatReply, chatShape, streamOutput } from "./lib/chat";
+import { saveOutputs } from "./lib/history";
 import { createPrediction, followPrediction, stillRunning } from "./lib/replicate";
 import { Prediction } from "./types";
 import { isRunning, logPercent } from "./utils/status";
@@ -68,5 +69,6 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
   yield { type: "text-start", id: ANSWER };
   yield answer(chatReply(finished, prompt, shape));
   yield { type: "text-end", id: ANSWER };
+  await saveOutputs(finished);
   yield { type: "finish", finishReason: "stop" };
 };

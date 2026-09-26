@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Action, ActionPanel, Color, Icon, List, openCommandPreferences } from "@raycast/api";
+import { fileURLToPath } from "node:url";
+import { useSavedOutputs } from "../hooks/useSavedOutputs";
+import { isSaved, predictionItems } from "../lib/history";
 import { Prediction } from "../types";
-import { firstImage, outputItems, previewMarkdown } from "../utils/output";
+import { firstImage, previewMarkdown } from "../utils/output";
 import { STATUS_COLORS } from "../utils/status";
 import { PredictionActions } from "./PredictionActions";
 import { PredictionDetail } from "./PredictionDetail";
@@ -15,6 +18,7 @@ type Props = {
 };
 export const PredictionList = ({ predictions, isLoading, error, pagination, revalidate }: Props) => {
   const [selected, setSelected] = useState<string | null>(null);
+  const { saved } = useSavedOutputs();
 
   if (error) {
     return (
@@ -46,7 +50,7 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
       <List.EmptyView
         icon={{ source: "🚀" }}
         title="No Predictions Found"
-        description="Replicate removes prediction outputs about an hour after they run, so older predictions show up empty. Find models to run at replicate.com/explore"
+        description="Replicate deletes outputs about an hour after they run, so only images saved on this computer stay. Find models to run at replicate.com/explore"
         actions={
           <ActionPanel>
             <Action.OpenInBrowser icon={Icon.Globe} url="https://replicate.com/explore" />
@@ -54,14 +58,15 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
         }
       />
       {predictions?.map((prediction) => {
-        const items = outputItems(prediction.output);
+        const items = predictionItems(prediction, saved);
         const image = firstImage(items);
+        const icon = image && isSaved(image) ? fileURLToPath(image) : image;
         const prompt = prediction.input?.prompt?.trim();
 
         return (
           <List.Item
             key={prediction.id}
-            icon={{ source: image ?? Icon.Image, tintColor: image ? undefined : Color.SecondaryText }}
+            icon={{ source: icon ?? Icon.Image, tintColor: icon ? undefined : Color.SecondaryText }}
             title={prompt || prediction.model || prediction.id}
             keywords={[prediction.model ?? "", prediction.status]}
             accessories={[{ tag: { value: prediction.status, color: STATUS_COLORS[prediction.status] } }]}

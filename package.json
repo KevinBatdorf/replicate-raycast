@@ -169,6 +169,15 @@
       "required": true
     },
     {
+      "name": "saveImages",
+      "type": "checkbox",
+      "title": "Image History",
+      "label": "Save generated images on this computer",
+      "description": "Replicate deletes a prediction's files about an hour after it runs. With this on, images the extension generates are copied to this computer so View Predictions can still show them. The copies don't sync to other devices.",
+      "default": true,
+      "required": false
+    },
+    {
       "name": "defaultModel",
       "type": "textfield",
       "title": "Default Model",

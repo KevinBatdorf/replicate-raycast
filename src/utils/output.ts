@@ -51,6 +51,8 @@ const classify = (value: unknown): OutputItem | undefined => {
     if (isImage(path)) return { kind: "image", url: value };
     if (VIDEO_EXTENSIONS.includes(extension)) return { kind: "video", url: value };
     if (AUDIO_EXTENSIONS.includes(extension)) return { kind: "audio", url: value };
+    // Replicate serves some images from URLs with no extension at all.
+    if (!extension) return { kind: "image", url: value };
     return { kind: "file", url: value };
   }
   if (value === null || value === undefined) return undefined;
@@ -90,7 +92,7 @@ const statusLine = (prediction: Prediction) => {
     case "failed":
       return prediction.error ?? "This prediction failed.";
     default:
-      return "Replicate removes prediction outputs about an hour after they run, so this one is empty.";
+      return "Replicate deletes outputs about an hour after they run, and this one wasn't saved on this computer.";
   }
 };
 
