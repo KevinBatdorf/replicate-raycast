@@ -60,7 +60,12 @@ export const PredictionList = ({ predictions, isLoading, error, pagination, reva
             icon={{ source: icon ?? Icon.Image, tintColor: icon ? undefined : Color.SecondaryText }}
             title={prompt || prediction.model || prediction.id}
             keywords={[prediction.model ?? "", prediction.status]}
-            accessories={[{ tag: { value: prediction.status, color: STATUS_COLORS[prediction.status] } }]}
+            accessories={[
+              {
+                icon: { source: Icon.CircleFilled, tintColor: STATUS_COLORS[prediction.status] },
+                tooltip: prediction.status,
+              },
+            ]}
             detail={<List.Item.Detail markdown={previewMarkdown(prediction, items)} />}
             actions={
               <ActionPanel>

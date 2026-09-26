@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePromise } from "@raycast/utils";
 import { Prediction, PredictionResponse } from "../types";
 import { getPrediction, replicateFetch } from "../lib/replicate";
@@ -7,17 +7,27 @@ import { POLL_INTERVAL_MS, isRunning } from "../utils/status";
 const MAX_POLLED = 5;
 
 export const usePredictions = () => {
+  const seen = useRef(new Set<string>());
   const result = usePromise(
     () =>
       async ({ cursor }: { cursor?: string }) => {
+        if (!cursor) seen.current = new Set();
         const response = await replicateFetch<PredictionResponse>(cursor ?? "/predictions");
+        // Later pages can return predictions an earlier page already listed.
+        const fresh = response.results.filter((prediction) => !seen.current.has(prediction.id));
         return {
-          data: response.results,
-          hasMore: Boolean(response.next),
+          data: fresh,
+          hasMore: Boolean(response.next) && fresh.length > 0,
           cursor: response.next ?? undefined,
         };
       },
     [],
+    {
+      // Only pages that land count as seen; a load Raycast discards must not hide its page.
+      onData: (page: Prediction[]) => {
+        for (const prediction of page) seen.current.add(prediction.id);
+      },
+    },
   );
 
   // Kept apart from the paged data: mutating it cancels whichever page is still loading.
