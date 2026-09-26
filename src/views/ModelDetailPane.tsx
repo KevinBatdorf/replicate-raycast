@@ -1,11 +1,8 @@
 import { List } from "@raycast/api";
 import { Model } from "../types";
-import { firstImage, outputItems } from "../utils/output";
+import { firstImage, outputItems, sizedImage } from "../utils/output";
 
 const IMAGE_WIDTH = 200;
-
-// Raycast sizes markdown images through query params, and delivery URLs are already signed.
-const sized = (url: string) => `${url}${url.includes("?") ? "&" : "?"}raycast-width=${IMAGE_WIDTH}`;
 
 const exampleImage = (model?: Model) => {
   const example = model?.default_example;
@@ -28,7 +25,7 @@ export const ModelDetailPane = ({ model, full }: Props) => {
   ].filter(Boolean);
 
   const markdown = [
-    image ? `![${details.name}](${sized(image)})` : undefined,
+    image ? `![${details.name}](${sizedImage(image, IMAGE_WIDTH)})` : undefined,
     details.description,
     prompt ? `**Example prompt** — ${prompt}` : undefined,
     links.length ? links.join("  ·  ") : undefined,

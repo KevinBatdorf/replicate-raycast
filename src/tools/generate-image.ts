@@ -2,7 +2,7 @@ import { Tool, environment, getPreferenceValues } from "@raycast/api";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { createPrediction, downloadFile, waitForPrediction } from "../lib/replicate";
-import { altText } from "../utils/output";
+import { altText, CHAT_IMAGE_WIDTH, sizedImage } from "../utils/output";
 
 type Input = {
   /**
@@ -98,7 +98,7 @@ export default async function tool(input: Input) {
   );
 
   return {
-    markdown: urls.map((url) => `![${altText(input.prompt)}](${url})`).join("\n\n"),
+    markdown: urls.map((url) => `![${altText(input.prompt)}](${sizedImage(url, CHAT_IMAGE_WIDTH)})`).join("\n\n"),
     // A tool can't show an image itself, so the chat model has to repeat the markdown.
     instruction: "Reply with the markdown field exactly as given. It is the only way the user sees the image.",
     model,

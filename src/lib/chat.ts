@@ -1,6 +1,6 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
-import { altText, extensionFor, outputItems } from "../utils/output";
+import { altText, CHAT_IMAGE_WIDTH, extensionFor, outputItems, sizedImage } from "../utils/output";
 import { ReplicateError, uploadBytes } from "./replicate";
 
 export type ChatShape = {
@@ -160,7 +160,7 @@ export const chatReply = (prediction: Prediction, prompt: string, shape: ChatSha
       if (item.kind === "text") return item.text;
       // Some image URLs have no extension, so an image model's plain file is still its image.
       if (item.kind === "image" || (item.kind === "file" && shape.output === "image")) {
-        return `![${altText(prompt)}](${item.url})`;
+        return `![${altText(prompt)}](${sizedImage(item.url, CHAT_IMAGE_WIDTH)})`;
       }
       return `[${item.kind === "file" ? "Open file" : `Play ${item.kind}`}](${item.url})`;
     })
