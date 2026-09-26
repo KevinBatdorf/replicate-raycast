@@ -33,6 +33,11 @@
   ],
   "tools": [
     {
+      "name": "list-models",
+      "title": "List Image Models",
+      "description": "List the image models in the user's Raycast AI model picker, with each one's description, whether it edits images, and the user's default model if they set one."
+    },
+    {
       "name": "start-generation",
       "title": "Start Image Generation",
       "description": "Start generating an image from a text prompt by running a model on Replicate. Returns straight away with an id to pass to Check Image Generation."
@@ -45,11 +50,33 @@
   ],
   "ai": {
     "modelProvider": "provider",
-    "instructions": "Generating an image takes two tools. Call start-generation, then call check-generation with the id it returns, and keep calling check-generation until the image is done or fails; each check waits up to ten seconds. Between calls, tell the user in a few words that it's still working. When it's done, reply with the check's `markdown` field exactly as given: the user can't see the image any other way. Unless the user names a model, start-generation runs the default model from the extension's preferences, which is black-forest-labs/flux-schnell unless they changed it. Only pass `model` when the user names one, and never invent a model name — Replicate models are written as owner/name.",
+    "instructions": "Generating an image takes three steps. Unless the user names a model, call list-models and use its default, or when there's no default pick the model whose description best fits the request. Then call start-generation, and keep calling check-generation with the id it returns until the image is done or fails; each check waits up to ten seconds. Between calls, tell the user in a few words that it's still working. When it's done, reply with the check's `markdown` field exactly as given: the user can't see the image any other way. To change an existing image, pick a model that edits images and pass the image's URL as `image`. Replicate models are written as owner/name; never invent one.",
     "evals": [
       {
         "input": "@replicate generate an image of a cat riding a bicycle through Tokyo at night",
         "mocks": {
+          "list-models": {
+            "default": null,
+            "models": [
+              {
+                "id": "black-forest-labs/flux-schnell",
+                "description": "The fastest image generation model for local development and personal use",
+                "editsImages": false,
+                "needsImage": false,
+                "official": true,
+                "runs": 695000000
+              },
+              {
+                "id": "google/nano-banana",
+                "description": "Google's image generation and editing model",
+                "editsImages": true,
+                "needsImage": false,
+                "official": true,
+                "runs": 120000000
+              }
+            ],
+            "instruction": "Pick the model whose description best fits the request. To change an existing image, pick one that edits images."
+          },
           "start-generation": {
             "id": "abc123",
             "status": "starting",
@@ -90,6 +117,28 @@
       {
         "input": "@replicate make me a 16:9 desktop wallpaper of a foggy pine forest",
         "mocks": {
+          "list-models": {
+            "default": null,
+            "models": [
+              {
+                "id": "black-forest-labs/flux-schnell",
+                "description": "The fastest image generation model for local development and personal use",
+                "editsImages": false,
+                "needsImage": false,
+                "official": true,
+                "runs": 695000000
+              },
+              {
+                "id": "google/nano-banana",
+                "description": "Google's image generation and editing model",
+                "editsImages": true,
+                "needsImage": false,
+                "official": true,
+                "runs": 120000000
+              }
+            ],
+            "instruction": "Pick the model whose description best fits the request. To change an existing image, pick one that edits images."
+          },
           "start-generation": {
             "id": "def456",
             "status": "starting",
@@ -125,6 +174,28 @@
       {
         "input": "@replicate generate a watercolour fox with google/nano-banana",
         "mocks": {
+          "list-models": {
+            "default": null,
+            "models": [
+              {
+                "id": "black-forest-labs/flux-schnell",
+                "description": "The fastest image generation model for local development and personal use",
+                "editsImages": false,
+                "needsImage": false,
+                "official": true,
+                "runs": 695000000
+              },
+              {
+                "id": "google/nano-banana",
+                "description": "Google's image generation and editing model",
+                "editsImages": true,
+                "needsImage": false,
+                "official": true,
+                "runs": 120000000
+              }
+            ],
+            "instruction": "Pick the model whose description best fits the request. To change an existing image, pick one that edits images."
+          },
           "start-generation": {
             "id": "ghi789",
             "status": "starting",
@@ -181,9 +252,10 @@
       "name": "defaultModel",
       "type": "textfield",
       "title": "Default Model",
-      "description": "The model the AI tool runs when the prompt doesn't name one, written as owner/name.",
-      "default": "black-forest-labs/flux-schnell",
-      "required": false
+      "description": "The model @replicate uses for images, written as owner/name. Leave it empty to let the AI pick from your Raycast AI models.",
+      "default": "",
+      "required": false,
+      "placeholder": "Auto"
     },
     {
       "name": "confirmGenerations",

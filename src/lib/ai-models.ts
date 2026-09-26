@@ -93,21 +93,23 @@ const registerById = (id: string) =>
     .then(register)
     .catch(() => undefined);
 
-export const registeredModels = async () => {
+export const pickerModelIds = async () => {
   const { popularModels } = getPreferenceValues<Preferences>();
   const [kept, hidden, popular] = await Promise.all([
     keptModelIds(),
     hiddenModelIds(),
     popularModels ? popularModelIds().catch((): string[] => []) : [],
   ]);
+  return { kept, popular: popular.filter((id) => !hidden.includes(id) && !kept.includes(id)) };
+};
 
+export const registeredModels = async () => {
+  const { kept, popular } = await pickerModelIds();
   // Dropping a model the user added or chatted with would break those chats.
   const yours = await Promise.all(
     kept.map(async (id) => (await registerById(id)) ?? { id, title: id.split("/")[1] ?? id, icon: ICON }),
   );
-  const others = await Promise.all(
-    popular.filter((id) => !hidden.includes(id) && !kept.includes(id)).map(registerById),
-  );
+  const others = await Promise.all(popular.map(registerById));
   return [...yours, ...others.filter((model): model is AI.RegisteredModel => Boolean(model))];
 };
 
