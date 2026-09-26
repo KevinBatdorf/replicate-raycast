@@ -2,21 +2,21 @@ import { Action, ActionPanel, Color, Detail, Icon } from "@raycast/api";
 import { useAIModels } from "../hooks/useAIModels";
 import { useModel } from "../hooks/useModel";
 import { chatShape } from "../lib/chat";
-import { formatRuns } from "../utils/format";
+import { formatAgo, formatRuns } from "../utils/format";
 import { firstImage, outputItems } from "../utils/output";
 import { ModelForm } from "./ModelForm";
 
-type Status = "added" | "popular" | "hidden" | "none";
+type Status = "kept" | "popular" | "hidden" | "none";
 
 const STATUS_TAGS: Record<Status, { text: string; color: Color }> = {
-  added: { text: "Added by You", color: Color.Green },
+  kept: { text: "In Raycast AI", color: Color.Green },
   popular: { text: "Popular", color: Color.Blue },
   hidden: { text: "Hidden", color: Color.SecondaryText },
   none: { text: "Not Added", color: Color.SecondaryText },
 };
 
-const statusOf = (id: string, { added, hidden, popular }: Record<"added" | "hidden" | "popular", string[]>) => {
-  if (added.includes(id)) return "added";
+const statusOf = (id: string, { kept, hidden, popular }: Record<"kept" | "hidden" | "popular", string[]>) => {
+  if (kept.includes(id)) return "kept";
   if (hidden.includes(id)) return "hidden";
   if (popular.includes(id)) return "popular";
   return "none";
@@ -28,8 +28,9 @@ type Props = {
 };
 export const AIModelDetail = ({ id, popular }: Props) => {
   const { data: model, isLoading } = useModel(id);
-  const { added, hidden, isLoading: loadingState, add, remove, hide, unhide } = useAIModels();
-  const status: Status = statusOf(id, { added, hidden, popular });
+  const { kept, keptIds, hidden, isLoading: loadingState, add, remove, hide, unhide } = useAIModels();
+  const status: Status = statusOf(id, { kept: keptIds, hidden, popular });
+  const saved = kept.find((entry) => entry.id === id);
   const shape = chatShape(model);
 
   const example = model?.default_example;
@@ -55,6 +56,8 @@ export const AIModelDetail = ({ id, popular }: Props) => {
           <Detail.Metadata.TagList title="Raycast AI">
             <Detail.Metadata.TagList.Item text={STATUS_TAGS[status].text} color={STATUS_TAGS[status].color} />
           </Detail.Metadata.TagList>
+          {saved?.usedAt && <Detail.Metadata.Label title="Last Used" text={formatAgo(saved.usedAt)} />}
+          {saved?.addedAt && <Detail.Metadata.Label title="Added" text={formatAgo(saved.addedAt)} />}
           {model && (
             <Detail.Metadata.Label
               title="Replies With"
@@ -82,7 +85,7 @@ export const AIModelDetail = ({ id, popular }: Props) => {
       }
       actions={
         <ActionPanel>
-          {status === "added" && (
+          {status === "kept" && (
             <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(id)} />
           )}
           {status === "popular" && (

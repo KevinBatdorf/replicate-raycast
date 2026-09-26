@@ -11,10 +11,11 @@ import {
 import { usePromise } from "@raycast/utils";
 import { ReactElement, useState } from "react";
 import { useAIModels } from "../hooks/useAIModels";
-import { fullModel, popularModelIds } from "../lib/ai-models";
+import { fullModel, KeptModel, popularModelIds } from "../lib/ai-models";
 import { chatShape } from "../lib/chat";
 import { errorMessage, modelId, searchModels } from "../lib/replicate";
 import { Model } from "../types";
+import { formatAgo } from "../utils/format";
 import { AIModelDetail } from "./AIModelDetail";
 import { ModelList } from "./ModelList";
 
@@ -23,17 +24,24 @@ const loadDetails = async (ids: string[]) => {
   return Object.fromEntries(ids.map((id, index) => [id, models[index]])) as Record<string, Model | undefined>;
 };
 
+const activity = (model: KeptModel) => Math.max(model.usedAt ?? 0, model.addedAt ?? 0);
+
+const lastActivity = (model: KeptModel): List.Item.Accessory[] => {
+  const [label, time] = model.usedAt ? ["Used", model.usedAt] : ["Added", model.addedAt];
+  return time ? [{ text: `${label} ${formatAgo(time)}`, tooltip: new Date(time).toLocaleString() }] : [];
+};
+
 export const ManageAIModels = () => {
   const [query, setQuery] = useState("");
   const { popularModels } = getPreferenceValues<Preferences>();
-  const { added, hidden, isLoading, revalidate, add, remove, hide, unhide } = useAIModels();
+  const { kept, keptIds, hidden, isLoading, revalidate, add, remove, hide, unhide } = useAIModels();
   const { data: popular = [], isLoading: loadingPopular } = usePromise(popularModelIds, [], {
     execute: popularModels,
   });
 
   const popularIds = popularModels ? popular : [];
-  const shownPopular = popularIds.filter((id) => !added.includes(id) && !hidden.includes(id));
-  const listed = [...added, ...shownPopular, ...hidden];
+  const shownPopular = popularIds.filter((id) => !keptIds.includes(id) && !hidden.includes(id));
+  const listed = [...keptIds, ...shownPopular, ...hidden];
   const { data: details = {} } = usePromise(loadDetails, [listed]);
 
   const search = query.trim();
@@ -74,13 +82,18 @@ export const ManageAIModels = () => {
     </>
   );
 
-  const item = (id: string, model: Model | undefined, actions: ReactElement) => (
+  const item = (
+    id: string,
+    model: Model | undefined,
+    actions: ReactElement,
+    accessories: List.Item.Accessory[] = [],
+  ) => (
     <List.Item
       key={id}
       icon={model?.cover_image_url ?? Icon.Box}
       title={id}
       subtitle={model?.description}
-      accessories={model?.is_official ? [{ tag: "Official" }] : undefined}
+      accessories={[...accessories, ...(model?.is_official ? [{ tag: "Official" }] : [])]}
       actions={
         <ActionPanel>
           <Action.Push
@@ -120,18 +133,18 @@ export const ManageAIModels = () => {
         }
         actions={<ActionPanel>{browse}</ActionPanel>}
       />
-      <List.Section title="Added by You" subtitle="Stay until you remove them">
-        {added
-          .filter(matches)
-          .map((id) =>
+      <List.Section title="In Raycast AI">
+        {[...kept]
+          .sort((first, second) => activity(second) - activity(first))
+          .filter((model) => matches(model.id))
+          .map((model) =>
             item(
-              id,
-              details[id],
-              <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(id)} />,
+              model.id,
+              details[model.id],
+              <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => remove(model.id)} />,
+              lastActivity(model),
             ),
           )}
-      </List.Section>
-      <List.Section title="Popular" subtitle="Refreshed daily">
         {shownPopular.filter(matches).map((id) =>
           item(
             id,
@@ -140,6 +153,7 @@ export const ManageAIModels = () => {
               <Action icon={Icon.EyeDisabled} title="Hide from Raycast AI" onAction={() => hide(id)} />
               <Action icon={Icon.Pin} title="Keep in Raycast AI" onAction={() => add(id)} />
             </>,
+            [{ text: "Popular" }],
           ),
         )}
       </List.Section>

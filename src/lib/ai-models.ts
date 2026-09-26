@@ -4,27 +4,31 @@ import { DAY_MS, cached } from "./cache";
 import { chatCapabilities, chatShape } from "./chat";
 import { collectionModels, getModel, modelId } from "./replicate";
 
-const ADDED_KEY = "ai-models-added";
+const KEPT_KEY = "ai-models-kept";
 const HIDDEN_KEY = "ai-models-hidden";
 const POPULAR_COLLECTIONS = ["text-to-image", "image-editing"];
 const POPULAR_PER_COLLECTION = 5;
 const ICON = "replicate.png";
 
-const readIds = async (key: string) => {
+export type KeptModel = { id: string; addedAt?: number; usedAt?: number };
+
+const readList = async <T>(key: string): Promise<T[]> => {
   try {
     const stored = await LocalStorage.getItem<string>(key);
-    return stored ? (JSON.parse(stored) as string[]) : [];
+    return stored ? (JSON.parse(stored) as T[]) : [];
   } catch {
     // Unreadable storage should cost the user's picks, not the whole model list.
     return [];
   }
 };
 
-const writeIds = (key: string, ids: string[]) => LocalStorage.setItem(key, JSON.stringify([...new Set(ids)]));
+const writeList = <T>(key: string, list: T[]) => LocalStorage.setItem(key, JSON.stringify(list));
 
-export const addedModelIds = () => readIds(ADDED_KEY);
+export const keptModels = () => readList<KeptModel>(KEPT_KEY);
 
-export const hiddenModelIds = () => readIds(HIDDEN_KEY);
+export const keptModelIds = async () => (await keptModels()).map((model) => model.id);
+
+export const hiddenModelIds = () => readList<string>(HIDDEN_KEY);
 
 export const fullModel = (id: string) => {
   const [owner, name] = id.split("/");
@@ -66,41 +70,50 @@ const registerById = (id: string) =>
 
 export const registeredModels = async () => {
   const { popularModels } = getPreferenceValues<Preferences>();
-  const [added, hidden, popular] = await Promise.all([
-    addedModelIds(),
+  const [kept, hidden, popular] = await Promise.all([
+    keptModelIds(),
     hiddenModelIds(),
     popularModels ? popularModelIds().catch((): string[] => []) : [],
   ]);
 
   // Dropping a model the user added or chatted with would break those chats.
   const yours = await Promise.all(
-    added.map(async (id) => (await registerById(id)) ?? { id, title: id.split("/")[1] ?? id, icon: ICON }),
+    kept.map(async (id) => (await registerById(id)) ?? { id, title: id.split("/")[1] ?? id, icon: ICON }),
   );
   const others = await Promise.all(
-    popular.filter((id) => !hidden.includes(id) && !added.includes(id)).map(registerById),
+    popular.filter((id) => !hidden.includes(id) && !kept.includes(id)).map(registerById),
   );
   return [...yours, ...others.filter((model): model is AI.RegisteredModel => Boolean(model))];
 };
 
-export const addModel = async (id: string) => writeIds(ADDED_KEY, [...(await addedModelIds()), id]);
-
-export const recordUse = async (id: string) => {
-  const added = await addedModelIds();
-  if (!added.includes(id)) await writeIds(ADDED_KEY, [...added, id]);
+const keep = async (id: string, stamp: Omit<KeptModel, "id">) => {
+  const kept = await keptModels();
+  const known = kept.some((model) => model.id === id);
+  await writeList(
+    KEPT_KEY,
+    known ? kept.map((model) => (model.id === id ? { ...model, ...stamp } : model)) : [...kept, { id, ...stamp }],
+  );
 };
 
-export const hideModel = async (id: string) => writeIds(HIDDEN_KEY, [...(await hiddenModelIds()), id]);
+export const addModel = (id: string) => keep(id, { addedAt: Date.now() });
+
+export const recordUse = (id: string) => keep(id, { usedAt: Date.now() });
+
+export const hideModel = async (id: string) => {
+  const hidden = await hiddenModelIds();
+  if (!hidden.includes(id)) await writeList(HIDDEN_KEY, [...hidden, id]);
+};
 
 export const unhideModel = async (id: string) =>
-  writeIds(
+  writeList(
     HIDDEN_KEY,
     (await hiddenModelIds()).filter((entry) => entry !== id),
   );
 
 export const removeModel = async (id: string) => {
-  await writeIds(
-    ADDED_KEY,
-    (await addedModelIds()).filter((entry) => entry !== id),
+  await writeList(
+    KEPT_KEY,
+    (await keptModels()).filter((model) => model.id !== id),
   );
   // Without the hide, a popular model the user removed returns on the next daily refresh.
   const popular = await popularModelIds().catch((): string[] => []);

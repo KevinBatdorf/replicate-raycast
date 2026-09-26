@@ -1,10 +1,10 @@
 import { showToast, Toast } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
 import {
-  addedModelIds,
   addModel,
   hiddenModelIds,
   hideModel,
+  keptModels,
   refreshAIModels,
   removeModel,
   unhideModel,
@@ -13,8 +13,8 @@ import { errorMessage } from "../lib/replicate";
 
 export const useAIModels = () => {
   const { data, isLoading, revalidate } = usePromise(async () => {
-    const [added, hidden] = await Promise.all([addedModelIds(), hiddenModelIds()]);
-    return { added, hidden };
+    const [kept, hidden] = await Promise.all([keptModels(), hiddenModelIds()]);
+    return { kept, hidden };
   });
 
   const change = async (id: string, title: string, apply: () => Promise<void>) => {
@@ -33,7 +33,8 @@ export const useAIModels = () => {
   };
 
   return {
-    added: data?.added ?? [],
+    kept: data?.kept ?? [],
+    keptIds: (data?.kept ?? []).map((model) => model.id),
     hidden: data?.hidden ?? [],
     isLoading,
     revalidate,

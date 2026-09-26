@@ -34,7 +34,7 @@ export const ModelList = () => {
     const id = modelId(model);
     const runs = formatRuns(model.run_count);
     const example = selected === id ? full?.default_example?.input?.prompt?.trim() : undefined;
-    const inAI = aiModels.added.includes(id);
+    const inAI = aiModels.keptIds.includes(id);
     // A listed model may lack its schema, so the highlighted row's fetched model decides.
     const chattable = Boolean(chatShape(selected === id ? full : model.latest_version ? model : undefined));
     return (
