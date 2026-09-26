@@ -2,7 +2,6 @@ import { Tool, environment, getPreferenceValues } from "@raycast/api";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { createPrediction, downloadFile, waitForPrediction } from "../lib/replicate";
-import { startTimer } from "../lib/timing";
 import { chatImage } from "../utils/output";
 
 type Input = {
@@ -56,7 +55,6 @@ export const confirmation: Tool.Confirmation<Input> = async (input) => {
  * Generate an image from a text prompt by running a model on Replicate.
  */
 export default async function tool(input: Input) {
-  const timer = startTimer("tool");
   const model = resolveModel(input.model);
   const [owner, name] = model.split("/");
   const [, version] = name.split(":");
@@ -75,8 +73,6 @@ export default async function tool(input: Input) {
       },
     }),
   );
-
-  timer.mark("replicate");
 
   if (prediction.status !== "succeeded") {
     throw new Error(prediction.error ?? `The prediction ${prediction.status}.`);
@@ -99,12 +95,7 @@ export default async function tool(input: Input) {
         () => undefined,
       ),
     ),
-  ).then(() => {
-    timer.mark("saved");
-    return timer.save(prediction);
-  });
-  timer.mark("replied");
-  void timer.save(prediction);
+  );
 
   return {
     markdown: urls.map((url) => chatImage(url, input.prompt)).join("\n\n"),
