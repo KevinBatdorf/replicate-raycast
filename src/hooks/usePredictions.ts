@@ -1,46 +1,95 @@
-import { useEffect } from "react";
-import { usePromise } from "@raycast/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Prediction, PredictionResponse } from "../types";
-import { replicateFetch } from "../lib/replicate";
+import { getPrediction, replicateFetch } from "../lib/replicate";
 import { POLL_INTERVAL_MS, isRunning } from "../utils/status";
 
+const FIRST_PAGE = "/predictions";
 const MAX_POLLED = 5;
 
-export const usePredictions = () => {
-  const result = usePromise(
-    () =>
-      async ({ cursor }: { cursor?: string }) => {
-        const response = await replicateFetch<PredictionResponse>(cursor ?? "/predictions");
-        return {
-          data: response.results,
-          hasMore: Boolean(response.next),
-          cursor: response.next ?? undefined,
-        };
-      },
-    [],
-  );
+export const mergePage = (current: Prediction[], page: Prediction[]) => {
+  const listed = new Set(current.map((prediction) => prediction.id));
+  return [...current, ...page.filter((prediction) => !listed.has(prediction.id))];
+};
 
-  const { data, mutate } = result;
-  const running = (data ?? []).filter(isRunning).slice(0, MAX_POLLED);
-  const ids = running.map((prediction) => prediction.id).join(",");
+export const usePredictions = () => {
+  const [loaded, setLoaded] = useState<Prediction[]>();
+  const [next, setNext] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error>();
+  // One page at a time, and never the same page twice, or the list loops on a repeated cursor.
+  const busy = useRef(false);
+  const requested = useRef(new Set<string>());
+  const generation = useRef(0);
+
+  const load = useCallback(async (url: string, { reset = false } = {}) => {
+    if (!reset && (busy.current || requested.current.has(url))) return;
+    if (reset) {
+      generation.current += 1;
+      requested.current = new Set();
+    }
+    const current = generation.current;
+    busy.current = true;
+    requested.current.add(url);
+    setIsLoading(true);
+    try {
+      const response = await replicateFetch<PredictionResponse>(url);
+      if (current !== generation.current) return;
+      setLoaded((listed) => mergePage(reset ? [] : (listed ?? []), response.results));
+      setNext(response.next && !requested.current.has(response.next) ? response.next : null);
+      setError(undefined);
+    } catch (caught) {
+      if (current === generation.current) setError(caught instanceof Error ? caught : new Error(String(caught)));
+    } finally {
+      if (current === generation.current) {
+        busy.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    load(FIRST_PAGE, { reset: true });
+  }, [load]);
+
+  // Kept apart from the paged data so a status refresh never disturbs paging.
+  const [live, setLive] = useState<Record<string, Prediction>>({});
+  const predictions = loaded?.map((prediction) => live[prediction.id] ?? prediction);
+  const ids = (predictions ?? [])
+    .filter(isRunning)
+    .slice(0, MAX_POLLED)
+    .map((prediction) => prediction.id)
+    .join(",");
 
   useEffect(() => {
     if (!ids) return;
-
     const timer = setTimeout(async () => {
-      const updated = await Promise.all(ids.split(",").map((id) => replicateFetch<Prediction>(`/predictions/${id}`)));
-      const byId = new Map(updated.map((prediction) => [prediction.id, prediction]));
-
-      // Revalidating would refetch page one and drop everything the user scrolled to.
-      await mutate(Promise.resolve(), {
-        optimisticUpdate: (current: Prediction[] | undefined) =>
-          (current ?? []).map((prediction) => byId.get(prediction.id) ?? prediction),
-        shouldRevalidateAfter: false,
-      });
+      try {
+        const updated = await Promise.all(ids.split(",").map(getPrediction));
+        setLive((current) => ({ ...current, ...Object.fromEntries(updated.map((p) => [p.id, p])) }));
+      } catch {
+        // A failed poll leaves the last known status; the next one tries again.
+        setLive((current) => ({ ...current }));
+      }
     }, POLL_INTERVAL_MS);
-
     return () => clearTimeout(timer);
-  }, [ids, mutate]);
+  }, [ids, live]);
 
-  return result;
+  const revalidate = () => {
+    setLive({});
+    return load(FIRST_PAGE, { reset: true });
+  };
+
+  return {
+    data: predictions,
+    isLoading,
+    error,
+    revalidate,
+    pagination: {
+      pageSize: 100,
+      hasMore: Boolean(next),
+      onLoadMore: () => {
+        if (next) load(next);
+      },
+    },
+  };
 };

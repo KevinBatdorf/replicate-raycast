@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { ActionPanel, Detail } from "@raycast/api";
 import { Prediction } from "../types";
 import { usePrediction } from "../hooks/usePrediction";
+import { useSavedOutputs } from "../hooks/useSavedOutputs";
+import { isSaved, predictionItems, saveOutputs } from "../lib/history";
 import { formatDate, formatDuration } from "../utils/format";
 import { STATUS_COLORS } from "../utils/status";
-import { outputItems, outputMarkdown } from "../utils/output";
+import { firstFile, outputMarkdown } from "../utils/output";
 import { PredictionActions } from "./PredictionActions";
 
 type Props = {
@@ -12,12 +15,21 @@ type Props = {
 };
 export const PredictionDetail = ({ id, initial }: Props) => {
   const { prediction, isLoading, revalidate } = usePrediction(id, initial);
+  const { saved, revalidate: reloadSaved } = useSavedOutputs();
+  const succeeded = prediction?.status === "succeeded";
+
+  // Covers runs started from the model form, which finish while this view is open.
+  useEffect(() => {
+    if (!succeeded || !prediction || saved[prediction.id]) return;
+    saveOutputs(prediction).then(reloadSaved);
+  }, [succeeded]);
 
   if (!prediction) {
     return <Detail isLoading={isLoading} markdown="" />;
   }
 
-  const items = outputItems(prediction.output);
+  const items = predictionItems(prediction, saved);
+  const file = firstFile(items);
 
   return (
     <Detail
@@ -36,6 +48,7 @@ export const PredictionDetail = ({ id, initial }: Props) => {
           {formatDate(prediction.created_at) && (
             <Detail.Metadata.Label title="Created" text={formatDate(prediction.created_at)} />
           )}
+          {file && isSaved(file.url) && <Detail.Metadata.Label title="Saved" text="On this computer" />}
           {formatDuration(prediction.metrics?.predict_time) && (
             <Detail.Metadata.Label title="Ran for" text={formatDuration(prediction.metrics?.predict_time)} />
           )}

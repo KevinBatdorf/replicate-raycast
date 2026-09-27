@@ -14,6 +14,7 @@ export type Prediction = {
   urls?: {
     get?: string;
     cancel?: string;
+    stream?: string;
   };
   input?: { prompt?: string } & Record<string, unknown>;
   status: PredictionStatus;
@@ -34,6 +35,7 @@ export type OptionSchema = {
   default?: string | number | boolean;
   description?: string;
   enum?: string[];
+  items?: OptionSchema;
   allOf?: { $ref: string }[];
   minimum?: number;
   maximum?: number;
@@ -62,16 +64,12 @@ export type Model = {
   description?: string;
   cover_image_url?: string | null;
   run_count?: number;
+  is_official?: boolean;
   github_url?: string | null;
   paper_url?: string | null;
   license_url?: string | null;
   default_example?: Prediction | null;
   latest_version?: ModelVersion | null;
-};
-
-export type ModelsResponse = {
-  results: Model[];
-  next: string | null;
 };
 
 export type SearchResponse = {

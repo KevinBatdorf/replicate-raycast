@@ -1,23 +1,16 @@
 import { useState } from "react";
 import { Action, ActionPanel, Icon, List } from "@raycast/api";
+import { chatShape } from "../lib/chat";
+import { MAIN_COLLECTIONS, modelId } from "../lib/replicate";
 import { Model } from "../types";
+import { useAIModels } from "../hooks/useAIModels";
 import { useCollections } from "../hooks/useCollections";
 import { useModel } from "../hooks/useModel";
 import { useModels } from "../hooks/useModels";
-import { modelId, useRecentModels } from "../hooks/useRecentModels";
+import { useRecentModels } from "../hooks/useRecentModels";
 import { formatRuns } from "../utils/format";
 import { ModelDetailPane } from "./ModelDetailPane";
 import { ModelForm } from "./ModelForm";
-
-// Replicate publishes forty-odd collections; these are the ones worth reaching first.
-const PINNED_COLLECTIONS = [
-  "text-to-image",
-  "image-editing",
-  "language-models",
-  "text-to-video",
-  "upscale-images",
-  "audio-generation",
-];
 
 export const ModelList = () => {
   const [query, setQuery] = useState("");
@@ -28,6 +21,7 @@ export const ModelList = () => {
   const { data: collections = [] } = useCollections();
   const { recents, remember } = useRecentModels();
   const { data: full } = useModel(selected ?? undefined);
+  const aiModels = useAIModels();
 
   const searching = Boolean(query.trim());
   const recentIds = new Set(recents.map(modelId));
@@ -40,6 +34,9 @@ export const ModelList = () => {
     const id = modelId(model);
     const runs = formatRuns(model.run_count);
     const example = selected === id ? full?.default_example?.input?.prompt?.trim() : undefined;
+    const inAI = aiModels.keptIds.includes(id);
+    // A listed model may lack its schema, so the highlighted row's fetched model decides.
+    const chattable = Boolean(chatShape(selected === id ? full : model.latest_version ? model : undefined));
     return (
       <List.Item
         key={id}
@@ -58,6 +55,11 @@ export const ModelList = () => {
             <Action.OpenInBrowser icon={Icon.Globe} title="Open on Replicate" url={`https://replicate.com/${id}`} />
             <Action.CopyToClipboard icon={Icon.Text} title="Copy Model Name" content={id} />
             {example && <Action.CopyToClipboard icon={Icon.Paragraph} title="Copy Example Prompt" content={example} />}
+            {inAI ? (
+              <Action icon={Icon.MinusCircle} title="Remove from Raycast AI" onAction={() => aiModels.remove(id)} />
+            ) : (
+              chattable && <Action icon={Icon.PlusCircle} title="Add to Raycast AI" onAction={() => aiModels.add(id)} />
+            )}
           </ActionPanel>
         }
       />
@@ -79,8 +81,8 @@ export const ModelList = () => {
           {[...collections]
             .sort((first, second) => {
               const rank = (slug: string) => {
-                const index = PINNED_COLLECTIONS.indexOf(slug);
-                return index === -1 ? PINNED_COLLECTIONS.length : index;
+                const index = MAIN_COLLECTIONS.indexOf(slug);
+                return index === -1 ? MAIN_COLLECTIONS.length : index;
               };
               return rank(first.slug) - rank(second.slug) || first.name.localeCompare(second.name);
             })

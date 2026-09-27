@@ -1,9 +1,8 @@
 import { useLocalStorage } from "@raycast/utils";
+import { modelId } from "../lib/replicate";
 import { Model } from "../types";
 
 const LIMIT = 8;
-
-export const modelId = (model: Model) => `${model.owner}/${model.name}`;
 
 export const useRecentModels = () => {
   const { value, setValue, isLoading } = useLocalStorage<Model[]>("recent-models", []);

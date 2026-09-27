@@ -19,6 +19,20 @@ const KIND_LABELS: Record<FileOutput["kind"], string> = {
 
 export const kindLabel = (kind: FileOutput["kind"]) => KIND_LABELS[kind];
 
+export const extensionFor = (mediaType?: string | null) =>
+  mediaType?.split(";")[0].split("/")[1]?.replace("jpeg", "jpg").replace(/\+.*/, "") || undefined;
+
+// Raycast sizes markdown images through query params, and delivery URLs are already signed.
+export const sizedImage = (url: string, width: number) =>
+  `${url}${url.includes("?") ? "&" : "?"}raycast-width=${width}`;
+
+export const altText = (prompt: string) =>
+  prompt
+    .replace(/\s+/g, " ")
+    .replace(/[[\]"<>]/g, "")
+    .trim()
+    .slice(0, 80);
+
 const asUrl = (value: string) => {
   try {
     return new URL(value);
@@ -37,6 +51,8 @@ const classify = (value: unknown): OutputItem | undefined => {
     if (isImage(path)) return { kind: "image", url: value };
     if (VIDEO_EXTENSIONS.includes(extension)) return { kind: "video", url: value };
     if (AUDIO_EXTENSIONS.includes(extension)) return { kind: "audio", url: value };
+    // Replicate serves some images from URLs with no extension at all.
+    if (!extension) return { kind: "image", url: value };
     return { kind: "file", url: value };
   }
   if (value === null || value === undefined) return undefined;
@@ -72,11 +88,11 @@ const statusLine = (prediction: Prediction) => {
     case "processing":
       return "Running...";
     case "canceled":
-      return "This prediction was cancelled.";
+      return "This prediction was canceled.";
     case "failed":
       return prediction.error ?? "This prediction failed.";
     default:
-      return "Replicate removes prediction outputs about an hour after they run, so this one is empty.";
+      return "Replicate deletes outputs about an hour after they run, and this one wasn't saved on this computer.";
   }
 };
 

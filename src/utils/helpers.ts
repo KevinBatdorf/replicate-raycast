@@ -1,9 +1,13 @@
 import { Clipboard, environment, openCommandPreferences, showHUD, showToast, Toast } from "@raycast/api";
+import { copyFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { extname, join } from "node:path";
+import { basename, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { isSaved } from "../lib/history";
 import { downloadFile, errorMessage } from "../lib/replicate";
 
 const outputFileName = (url: string) => {
+  if (isSaved(url)) return basename(fileURLToPath(url));
   const segments = new URL(url).pathname.split("/").filter(Boolean);
   const name = segments.at(-2) ?? "replicate";
   return `${name}${extname(segments.at(-1) ?? "") || ".png"}`;
@@ -12,7 +16,9 @@ const outputFileName = (url: string) => {
 export const copyOutputFile = async (url: string) => {
   const toast = await showToast(Toast.Style.Animated, "Copying...");
   try {
-    const file = await downloadFile(url, join(environment.supportPath, outputFileName(url)));
+    const file = isSaved(url)
+      ? fileURLToPath(url)
+      : await downloadFile(url, join(environment.supportPath, outputFileName(url)));
     await Clipboard.copy({ file });
     toast.hide();
     await showHUD("✅ Copied to clipboard!");
@@ -27,7 +33,8 @@ export const saveOutputFile = async (url: string) => {
   const destination = join(homedir(), "Downloads", outputFileName(url));
   const toast = await showToast(Toast.Style.Animated, "Saving...");
   try {
-    await downloadFile(url, destination);
+    if (isSaved(url)) await copyFile(fileURLToPath(url), destination);
+    else await downloadFile(url, destination);
     toast.hide();
     await showHUD(`✅ Saved to ${destination}`);
   } catch (error) {

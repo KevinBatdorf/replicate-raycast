@@ -1,4 +1,6 @@
 import { Action, Icon, showToast, Toast } from "@raycast/api";
+import { fileURLToPath } from "node:url";
+import { isSaved } from "../lib/history";
 import { Prediction } from "../types";
 import { cancelPrediction, errorMessage } from "../lib/replicate";
 import { copyOutputFile, saveOutputFile } from "../utils/helpers";
@@ -20,7 +22,7 @@ export const PredictionActions = ({ prediction, items, revalidate }: Props) => {
     try {
       await cancelPrediction(prediction.id);
       toast.style = Toast.Style.Success;
-      toast.title = "Prediction Cancelled";
+      toast.title = "Prediction Canceled";
       revalidate();
     } catch (error) {
       toast.style = Toast.Style.Failure;
@@ -29,8 +31,11 @@ export const PredictionActions = ({ prediction, items, revalidate }: Props) => {
     }
   };
 
+  const savedPath = file && isSaved(file.url) ? fileURLToPath(file.url) : undefined;
+
   return (
     <>
+      {savedPath && <Action.ShowInFinder path={savedPath} />}
       {file && (
         <Action
           icon={Icon.CopyClipboard}
@@ -45,7 +50,10 @@ export const PredictionActions = ({ prediction, items, revalidate }: Props) => {
           onAction={() => saveOutputFile(file.url)}
         />
       )}
-      {file && <Action.OpenInBrowser icon={Icon.Eye} title={`Open ${kindLabel(file.kind)}`} url={file.url} />}
+      {savedPath && <Action.Open icon={Icon.Eye} title={`Open ${kindLabel(file.kind)}`} target={savedPath} />}
+      {file && !savedPath && (
+        <Action.OpenInBrowser icon={Icon.Eye} title={`Open ${kindLabel(file.kind)}`} url={file.url} />
+      )}
       {text && <Action.CopyToClipboard icon={Icon.Text} title="Copy Output" content={text.text} />}
       <Action.OpenInBrowser
         icon={Icon.Globe}
