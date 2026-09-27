@@ -7,6 +7,8 @@ import { isRunning } from "../utils/status";
 
 const API_BASE = "https://api.replicate.com/v1";
 
+export const USER_AGENT = "raycast-replicate (+https://www.raycast.com/KevinBatdorf/replicate)";
+
 export class ReplicateError extends Error {
   readonly status: number;
 
@@ -28,6 +30,7 @@ export const replicateFetch = async <T>(path: string, init: RequestInit = {}): P
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
+      "User-Agent": USER_AGENT,
       "Content-Type": "application/json",
       ...init.headers,
     },
@@ -140,7 +143,7 @@ export const uploadBytes = async (bytes: Buffer, filename: string, type?: string
 
   const response = await fetch(`${API_BASE}/files`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, "User-Agent": USER_AGENT },
     body,
   });
   if (!response.ok) {

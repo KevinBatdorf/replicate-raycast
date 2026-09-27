@@ -1,7 +1,7 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
 import { altText, extensionFor, outputItems } from "../utils/output";
-import { ReplicateError, uploadBytes } from "./replicate";
+import { ReplicateError, uploadBytes, USER_AGENT } from "./replicate";
 
 export type ChatShape = {
   output: "text" | "image";
@@ -210,7 +210,12 @@ const errorDetail = (data: string) => {
 
 export async function* streamOutput(url: string, token: string) {
   const response = await fetch(url, {
-    headers: { Accept: "text/event-stream", "Cache-Control": "no-store", Authorization: `Bearer ${token}` },
+    headers: {
+      Accept: "text/event-stream",
+      "Cache-Control": "no-store",
+      Authorization: `Bearer ${token}`,
+      "User-Agent": USER_AGENT,
+    },
   });
   if (!response.ok || !response.body) {
     throw new ReplicateError(response.status, `The output stream failed with ${response.status}.`);
