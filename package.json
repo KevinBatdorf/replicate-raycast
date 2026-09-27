@@ -21,13 +21,6 @@
       "title": "Replicate",
       "description": "Run Replicate models, view your predictions and manage the models Raycast AI offers.",
       "mode": "view"
-    },
-    {
-      "name": "manage-ai-models",
-      "title": "Raycast AI Models",
-      "subtitle": "Replicate",
-      "description": "Choose which Replicate models appear in Raycast AI's model picker.",
-      "mode": "view"
     }
   ],
   "tools": [

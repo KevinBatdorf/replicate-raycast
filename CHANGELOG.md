@@ -3,7 +3,7 @@
 ## [Replicate models in Raycast AI] - {PR_MERGE_DATE}
 
 - Replicate models can be picked in Raycast AI's model picker (requires Raycast Pro). Image models reply with the image, editing models change an attached image or the last one in the chat, and text models stream their answer. A status section shows progress while a model runs
-- New Raycast AI Models command: popular image, image-editing and text models are offered and refreshed daily. Search Replicate to add any other model, hide popular ones, and set per-model chat defaults such as an aspect ratio. Models you've chatted with stay until you remove them
+- New Raycast AI Models screen in the Replicate menu: popular image, image-editing and text models are offered and refreshed daily. Search Replicate to add any other model, hide popular ones, and set per-model chat defaults such as an aspect ratio. Models you've chatted with stay until you remove them
 - `@replicate` picks from your Raycast AI models, or always uses your Default Model if you set one, can edit an existing image, and shows each step while an image generates. Fast models finish in a single step
 - Runs started from Raycast AI stop after five minutes, so a chat you leave doesn't keep billing
 - Run a Model lists every Replicate model with search, collections and a detail pane, builds its form from each model's inputs (including file uploads), remembers your last inputs, and runs official models on their own endpoint
