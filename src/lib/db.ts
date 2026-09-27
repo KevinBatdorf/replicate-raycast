@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { DB_FILE_PATH } from "../constants";
-import { buildPaginatedUrl, filterIsUrl, showAuthError, succeeded } from "./helpers";
+import { buildPaginatedUrl, isUrl, showAuthError, succeeded } from "../utils/helpers";
 import { PredictionResponse } from "../types";
 
 export const createTables = `
@@ -37,19 +37,21 @@ export const populateDbFromApi = async (db: Database, cursor: string | undefined
   const res = await fetch(apiEndpoint.toString(), { headers });
   const data = (await res.json()) as PredictionResponse;
   if (res.status === 401) {
-    return showAuthError();
+    const message = data?.detail || "Unauthorized";
+    return showAuthError(message);
   }
   let broke = false;
 
-  const predictions = data.results.filter(succeeded).filter(filterIsUrl);
+  const predictions = data.results.filter(succeeded).filter(isUrl);
   //   Iterate over the data and insert it into the database
   //   When we entounter an ID that already exists, we stop
   for (const prediction of predictions) {
     const { id, urls, input, output, status } = prediction;
     if (status !== "succeeded") continue;
 
-    //   Output might have multiple urls
-    for (const [index, url] of output.entries()) {
+    // Output might have multiple images
+    const normalized = typeof output === "string" ? [output] : output?.entries();
+    for (const [index, src] of normalized) {
       const theId = `${id}-${index}`;
       const select = db.prepare(`SELECT * FROM Prediction WHERE id =:id`);
       const res = select.getAsObject({ ":id": theId });
@@ -59,7 +61,7 @@ export const populateDbFromApi = async (db: Database, cursor: string | undefined
       }
       db.run("INSERT INTO Prediction (id, src, url, prompt) VALUES (?, ?, ?, ?)", [
         theId,
-        url,
+        src,
         urls?.get,
         input?.prompt ?? null,
       ]);
