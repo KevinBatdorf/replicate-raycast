@@ -64,6 +64,13 @@ export const downloadFile = async (url: string, destination: string) => {
   return path;
 };
 
+// Replicate deletes outputs about an hour after a run, and a dead link fails the run vaguely.
+export const isExpiredOutput = async (url: string) => {
+  if (!url.startsWith("https://replicate.delivery/")) return false;
+  const response = await fetch(url, { method: "HEAD" }).catch(() => undefined);
+  return response?.status === 404 || response?.status === 410;
+};
+
 export const getPrediction = (id: string) => replicateFetch<Prediction>(`/predictions/${id}`);
 
 export const cancelPrediction = (id: string) =>
@@ -105,7 +112,8 @@ export const searchModels = async (query: string) => {
 export const getModel = (owner: string, name: string) => replicateFetch<Model>(`/models/${owner}/${name}`);
 
 // Stopping a chat doesn't stop its prediction, so runs from Raycast AI cap themselves.
-export const RAYCAST_AI_CANCEL_AFTER = "5m";
+export const RAYCAST_AI_RUN_MINUTES = 5;
+export const RAYCAST_AI_CANCEL_AFTER = `${RAYCAST_AI_RUN_MINUTES}m`;
 
 export const createPrediction = ({
   owner,

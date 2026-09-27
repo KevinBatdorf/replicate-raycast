@@ -2,7 +2,7 @@ import { Tool, getPreferenceValues } from "@raycast/api";
 import { chatDefaults, fullModel } from "../lib/ai-models";
 import { chatShape } from "../lib/chat";
 import { generationResult } from "../lib/generation";
-import { createPrediction, RAYCAST_AI_CANCEL_AFTER } from "../lib/replicate";
+import { createPrediction, isExpiredOutput, RAYCAST_AI_CANCEL_AFTER } from "../lib/replicate";
 
 type Input = {
   /**
@@ -101,6 +101,11 @@ export default async function tool(input: Input) {
   }
   if (!input.image && shape?.image?.required) {
     throw new Error(`${model} edits an existing image. Pass the image's URL as image.`);
+  }
+  if (input.image && (await isExpiredOutput(input.image))) {
+    throw new Error(
+      "That image has expired on Replicate, so nothing ran. Ask the user for a fresh link, or to attach the image to an editing model picked in Raycast AI's model picker.",
+    );
   }
 
   const prediction = await createPrediction({

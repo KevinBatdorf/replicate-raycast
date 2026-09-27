@@ -1,7 +1,7 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
 import { altText, extensionFor, outputItems } from "../utils/output";
-import { ReplicateError, uploadBytes, USER_AGENT } from "./replicate";
+import { isExpiredOutput, ReplicateError, uploadBytes, USER_AGENT } from "./replicate";
 
 export type ChatShape = {
   output: "text" | "image";
@@ -100,11 +100,16 @@ const textOf = (message: AI.ModelMessage) => {
     .trim();
 };
 
-const imageIn = (message: AI.ModelMessage): ImageRef | undefined => {
+const attachedImage = (message: AI.ModelMessage): ImageRef | undefined => {
   if (message.role !== "user" && message.role !== "assistant") return undefined;
   for (const part of [...message.content].reverse()) {
     if (part.type === "file" && part.mediaType.startsWith("image/")) return part;
   }
+  return undefined;
+};
+
+const linkedImage = (message: AI.ModelMessage): ImageRef | undefined => {
+  if (message.role !== "user" && message.role !== "assistant") return undefined;
   const url =
     message.role === "user"
       ? [...textOf(message).matchAll(PASTED_URL)].map((match) => match[0]).findLast(isImageUrl)
@@ -112,9 +117,13 @@ const imageIn = (message: AI.ModelMessage): ImageRef | undefined => {
   return url ? { data: url, mediaType: "image/*" } : undefined;
 };
 
-export const sentImage = (messages: AI.ModelMessage[]) => {
+const imageIn = (message: AI.ModelMessage) => attachedImage(message) ?? linkedImage(message);
+
+// A text model reads a pasted image link as text, so only an attachment would go unused.
+export const sentImage = (messages: AI.ModelMessage[], shape: ChatShape) => {
   const last = messages.findLast((message) => message.role === "user");
-  return Boolean(last && imageIn(last));
+  if (!last) return false;
+  return Boolean(shape.output === "text" ? attachedImage(last) : imageIn(last));
 };
 
 // The newest image is the one a follow-up like "make it bluer" means.
@@ -157,6 +166,9 @@ export const chatInput = async (model: Model, shape: ChatShape, request: AI.Mode
   const image = shape.image ? latestImage(messages) : undefined;
   if (shape.image && image) {
     const url = await toUrl(image);
+    if (await isExpiredOutput(url)) {
+      throw new Error("That image has expired on Replicate, so nothing ran. Attach it to your message to edit it.");
+    }
     input[shape.image.name] = shape.image.multiple ? [url] : url;
   }
   if (shape.image?.required && !image) {

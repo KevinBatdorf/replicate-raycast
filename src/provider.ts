@@ -2,7 +2,13 @@ import { AI, getPreferenceValues } from "@raycast/api";
 import { chatDefaults, fullModel, pickerModelIds, recordUse, registeredModels } from "./lib/ai-models";
 import { chatInput, chatReply, chatShape, sentImage, streamOutput } from "./lib/chat";
 import { saveOutputs } from "./lib/history";
-import { createPrediction, followPrediction, RAYCAST_AI_CANCEL_AFTER, stillRunning } from "./lib/replicate";
+import {
+  createPrediction,
+  followPrediction,
+  RAYCAST_AI_CANCEL_AFTER,
+  RAYCAST_AI_RUN_MINUTES,
+  stillRunning,
+} from "./lib/replicate";
 import { Prediction } from "./types";
 import { isRunning, logPercent } from "./utils/status";
 
@@ -47,7 +53,7 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
   if (!shape) throw new Error(`${registered.id} returns output that a chat can't show.`);
   await recordUse(registered.id);
 
-  if (!shape.image && sentImage(request.messages ?? [])) {
+  if (!shape.image && sentImage(request.messages ?? [], shape)) {
     yield { type: "reasoning-end", id: STATUS };
     yield { type: "text-start", id: ANSWER };
     yield answer(await noImageReply(registered.id));
@@ -79,7 +85,9 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
 
   let finished = created;
   let shown: string | undefined;
-  for await (const prediction of followPrediction(created, { interval: CHAT_POLL_MS })) {
+  // Giving up before Cancel-After fires bills for a result the chat never shows.
+  const timeout = RAYCAST_AI_RUN_MINUTES * 60_000;
+  for await (const prediction of followPrediction(created, { interval: CHAT_POLL_MS, timeout })) {
     finished = prediction;
     const line = progress(prediction);
     if (line && line !== shown) yield status(line);
