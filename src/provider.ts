@@ -4,6 +4,7 @@ import { chatInput, chatReply, chatShape, sentImage, streamOutput } from "./lib/
 import { saveOutputs } from "./lib/history";
 import {
   createPrediction,
+  errorMessage,
   followPrediction,
   RAYCAST_AI_CANCEL_AFTER,
   RAYCAST_AI_RUN_MINUTES,
@@ -44,7 +45,10 @@ const noImageReply = async (id: string) => {
 export const getModels: AI.GetModels = () => registeredModels();
 
 // Status goes out as reasoning so a slow run shows movement without ending up in the answer.
-export const streamCompletion: AI.StreamCompletion = async function* (registered, request) {
+const run = async function* (
+  registered: AI.RegisteredModel,
+  request: AI.ModelRequest,
+): AsyncGenerator<AI.ModelStreamPart> {
   yield { type: "reasoning-start", id: STATUS };
   yield status(`Starting ${registered.id} on Replicate…`);
 
@@ -104,4 +108,27 @@ export const streamCompletion: AI.StreamCompletion = async function* (registered
   yield { type: "text-end", id: ANSWER };
   await saveOutputs(finished);
   yield { type: "finish", finishReason: "stop" };
+};
+
+// Raycast shows a thrown error as the provider being down and retries, rerunning a billed model.
+export const streamCompletion: AI.StreamCompletion = async function* (registered, request) {
+  const open = new Set<string>();
+  let answered = false;
+  try {
+    for await (const part of run(registered, request)) {
+      if (part.type === "reasoning-start" || part.type === "text-start") open.add(part.id);
+      if (part.type === "reasoning-end" || part.type === "text-end") open.delete(part.id);
+      if (part.type === "text-end") answered = true;
+      yield part;
+    }
+  } catch (error) {
+    if (open.has(STATUS)) yield { type: "reasoning-end", id: STATUS };
+    if (!answered) {
+      const midAnswer = open.has(ANSWER);
+      if (!midAnswer) yield { type: "text-start", id: ANSWER };
+      yield answer(midAnswer ? `\n\n${errorMessage(error)}` : errorMessage(error));
+      yield { type: "text-end", id: ANSWER };
+    }
+    yield { type: "finish", finishReason: "stop" };
+  }
 };
