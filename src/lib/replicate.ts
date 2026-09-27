@@ -64,13 +64,6 @@ export const downloadFile = async (url: string, destination: string) => {
   return path;
 };
 
-// Replicate deletes outputs about an hour after a run, and a dead link fails the run vaguely.
-export const isExpiredOutput = async (url: string) => {
-  if (!url.startsWith("https://replicate.delivery/")) return false;
-  const response = await fetch(url, { method: "HEAD" }).catch(() => undefined);
-  return response?.status === 404 || response?.status === 410;
-};
-
 export const getPrediction = (id: string) => replicateFetch<Prediction>(`/predictions/${id}`);
 
 export const cancelPrediction = (id: string) =>
@@ -164,6 +157,35 @@ export const uploadBytes = async (bytes: Buffer, filename: string, type?: string
 };
 
 export const uploadFile = async (path: string) => uploadBytes(await readFile(path), basename(path));
+
+const DOWNLOAD_TIMEOUT_MS = 20_000;
+
+// Some sites refuse Replicate's servers (Wikimedia answers them 403), so a linked image is copied over.
+export const imageForModel = async (url: string) => {
+  if (!/^https?:/.test(url)) return url;
+
+  if (url.startsWith("https://replicate.delivery/")) {
+    // Replicate deletes outputs about an hour after a run, and a dead link fails the run vaguely.
+    const response = await fetch(url, { method: "HEAD" }).catch(() => undefined);
+    if (response?.status === 404 || response?.status === 410) {
+      throw new Error("That image has expired on Replicate, so nothing ran. Attach it to your message to edit it.");
+    }
+    return url;
+  }
+
+  const response = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  }).catch(() => undefined);
+  const type = response?.headers.get("content-type") ?? undefined;
+  if (!response?.ok || type?.startsWith("text/html")) {
+    const status = response && !response.ok ? ` (${response.status})` : "";
+    throw new Error(
+      `Couldn't download an image from that link${status}, so nothing ran. Attach the image to your message instead.`,
+    );
+  }
+  return uploadBytes(Buffer.from(await response.arrayBuffer()), `image.${extensionFor(type) ?? "png"}`, type);
+};
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 180_000;

@@ -2,7 +2,7 @@ import { Tool, getPreferenceValues } from "@raycast/api";
 import { chatDefaults, fullModel } from "../lib/ai-models";
 import { chatShape } from "../lib/chat";
 import { generationResult } from "../lib/generation";
-import { createPrediction, isExpiredOutput, RAYCAST_AI_CANCEL_AFTER } from "../lib/replicate";
+import { createPrediction, imageForModel, RAYCAST_AI_CANCEL_AFTER } from "../lib/replicate";
 
 type Input = {
   /**
@@ -102,11 +102,7 @@ export default async function tool(input: Input) {
   if (!input.image && shape?.image?.required) {
     throw new Error(`${model} edits an existing image. Pass the image's URL as image.`);
   }
-  if (input.image && (await isExpiredOutput(input.image))) {
-    throw new Error(
-      "That image has expired on Replicate, so nothing ran. Ask the user for a fresh link, or to attach the image to an editing model picked in Raycast AI's model picker.",
-    );
-  }
+  const image = input.image && shape?.image ? await imageForModel(input.image) : undefined;
 
   const prediction = await createPrediction({
     owner,
@@ -119,9 +115,7 @@ export default async function tool(input: Input) {
       ...(await chatDefaults(`${owner}/${modelName}`)),
       ...parseInputs(input.inputs, accepts),
       [shape?.prompt ?? "prompt"]: input.prompt,
-      ...(input.image && shape?.image
-        ? { [shape.image.name]: shape.image.multiple ? [input.image] : input.image }
-        : {}),
+      ...(image && shape?.image ? { [shape.image.name]: shape.image.multiple ? [image] : image } : {}),
       ...(input.aspectRatio && (!accepts || accepts.aspect_ratio) ? { aspect_ratio: input.aspectRatio } : {}),
       ...(input.count && input.count > 1 && (!accepts || accepts.num_outputs) ? { num_outputs: input.count } : {}),
     },

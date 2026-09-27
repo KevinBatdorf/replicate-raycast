@@ -1,7 +1,7 @@
 import { AI } from "@raycast/api";
 import { Model, OptionSchema, Prediction } from "../types";
 import { altText, extensionFor, outputItems } from "../utils/output";
-import { isExpiredOutput, ReplicateError, uploadBytes, USER_AGENT } from "./replicate";
+import { imageForModel, ReplicateError, uploadBytes, USER_AGENT } from "./replicate";
 
 export type ChatShape = {
   output: "text" | "image";
@@ -140,8 +140,8 @@ const toBuffer = (data: Exclude<ImageRef["data"], URL>) => {
 };
 
 const toUrl = async ({ data, mediaType }: ImageRef) => {
-  if (data instanceof URL) return data.href;
-  if (typeof data === "string" && /^(https?:|data:)/.test(data)) return data;
+  if (data instanceof URL) return imageForModel(data.href);
+  if (typeof data === "string" && /^(https?:|data:)/.test(data)) return imageForModel(data);
   return uploadBytes(toBuffer(data), `attachment.${extensionFor(mediaType) ?? "png"}`, mediaType);
 };
 
@@ -166,9 +166,6 @@ export const chatInput = async (model: Model, shape: ChatShape, request: AI.Mode
   const image = shape.image ? latestImage(messages) : undefined;
   if (shape.image && image) {
     const url = await toUrl(image);
-    if (await isExpiredOutput(url)) {
-      throw new Error("That image has expired on Replicate, so nothing ran. Attach it to your message to edit it.");
-    }
     input[shape.image.name] = shape.image.multiple ? [url] : url;
   }
   if (shape.image?.required && !image) {
